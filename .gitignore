@@ -1,2 +1,25 @@
-node_modules/
+```
+
+---
+
+## **Archivo 2: .dockerignore**
+```
+node_modules
+npm-debug.log
+yarn-error.log
 .env
+.env.local
+.git
+.gitignore
+.vscode
+.idea
+*.log
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.cache
+dist
+build
+coverage
