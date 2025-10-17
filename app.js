@@ -99,21 +99,22 @@ const browser = await puppeteer.launch({
   headless: "new",
   defaultViewport: null,
   args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-gpu',
-    '--disable-blink-features=AutomationControlled',
-    '--disable-software-rasterizer',
-    '--disable-extensions',
-    '--no-zygote',
-    '--single-process'
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--disable-blink-features=AutomationControlled",
+    "--disable-software-rasterizer",
+    "--disable-extensions",
+    "--no-zygote",
+    "--single-process"
   ],
   executablePath: isLinux
-    ? '/usr/bin/chromium' // Render
-    : puppeteer.executablePath(), // Windows local
+    ? "/usr/bin/google-chrome-stable" // ✅ Render usa Chrome, no Chromium
+    : puppeteer.executablePath(),
   timeout: 0
 });
+
 
   const page = await browser.newPage();
   page.setDefaultTimeout(90000);
