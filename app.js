@@ -91,16 +91,19 @@ async function startBotTurbo() {
   console.log(`   - Polling: cada ${TURBO_CONFIG.POLL_INTERVAL_MS}ms`);
   console.log(`   - Inicio: ${TURBO_CONFIG.START_MINUTES_BEFORE} min antes`);
   console.log(`   - Hora objetivo: ${TURBO_CONFIG.TARGET_HOUR}:${String(TURBO_CONFIG.TARGET_MINUTE).padStart(2, '0')} PM\n`);
-  const browser = await puppeteer.launch({
-  headless: 'new', // Usar nuevo modo headless
+const browser = await puppeteer.launch({
+  headless: 'new',
   defaultViewport: null,
   args: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--disable-gpu',
-    '--disable-blink-features=AutomationControlled'
-  ]
+    '--disable-blink-features=AutomationControlled',
+    '--disable-software-rasterizer',
+    '--disable-extensions'
+  ],
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath()
 });
 
   const page = await browser.newPage();
