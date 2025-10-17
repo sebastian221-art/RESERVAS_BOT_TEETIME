@@ -23,24 +23,7 @@ EXPOSE 3000
 
 # Comando de inicio
 CMD ["node", "server.js"]
-```
 
----
-
-## 📋 **Pasos para usarlo:**
-
-### **1. Crear el archivo:**
-
-En la raíz de tu proyecto (misma carpeta que `server.js`), crea un archivo llamado exactamente:
-```
-Dockerfile
-```
-(Sin extensión, sin .txt, solo "Dockerfile")
-
-### **2. Copiar el contenido de arriba**
-
-### **3. Crear `.dockerignore`:**
-```
 node_modules
 .env
 .git
