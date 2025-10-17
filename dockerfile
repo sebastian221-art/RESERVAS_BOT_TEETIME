@@ -1,20 +1,23 @@
-# Usa la imagen oficial de Puppeteer que ya incluye Chrome estable
+# Usa la imagen oficial de Puppeteer como base
 FROM ghcr.io/puppeteer/puppeteer:21.0.0
 
-# Variables de entorno
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable \
-    NODE_ENV=production
+# Cambia al usuario root para realizar instalaciones
+USER root
 
-# Carpeta de trabajo
+# Establece el directorio de trabajo
 WORKDIR /usr/src/app
 
-# Instala las dependencias del sistema necesarias para que Chrome funcione
-RUN apt-get update && apt-get install -y \
+# Configura variables de entorno
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable \
+    NODE_ENV=production \
+    PORT=3000
+
+# Actualiza e instala dependencias del sistema con manejo de errores
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     ca-certificates \
     fonts-liberation \
-    gconf-service \
-    libappindicator1 \
     libasound2 \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
@@ -43,19 +46,23 @@ RUN apt-get update && apt-get install -y \
     libxss1 \
     libxtst6 \
     xdg-utils \
-    wget \
-    --no-install-recommends && \
+    wget && \
     rm -rf /var/lib/apt/lists/*
 
-# Copia dependencias e instala solo producción
+# Copia los archivos de dependencias
 COPY package*.json ./
-RUN npm ci --only=production --ignore-scripts
 
-# Copia el resto del código
+# Instala dependencias de Node.js
+RUN npm ci --only=production
+
+# Copia el resto del código de la aplicación
 COPY . .
 
 # Expone el puerto del servidor
 EXPOSE 3000
 
-# Comando de inicio
+# Cambia de vuelta al usuario de Puppeteer
+USER pptruser
+
+# Comando de inicio para el servidor
 CMD ["node", "server.js"]
