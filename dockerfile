@@ -17,23 +17,22 @@ WORKDIR /usr/src/app
 # Instala dependencias del sistema y Chrome
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    ca-certificates \
     wget \
     gnupg \
-    && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    ca-certificates \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
+    google-chrome-stable \
     fonts-liberation \
     libasound2 \
-    libatk1.0-0 \
     libatk-bridge2.0-0 \
-    libc6 \
+    libatk1.0-0 \
     libcairo2 \
     libcups2 \
     libdbus-1-3 \
     libexpat1 \
-    libfontconfig1 \
     libgbm1 \
     libglib2.0-0 \
     libgtk-3-0 \
@@ -53,10 +52,8 @@ RUN apt-get update && \
     libxss1 \
     libxtst6 \
     xdg-utils \
-    google-chrome-stable \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists /var/cache/apt/archives
+    && apt-get clean
 
 # Copia archivos de dependencias
 COPY package*.json ./
@@ -80,5 +77,5 @@ USER pptruser
 # Expone el puerto del servidor
 EXPOSE 3000
 
-# Comando de inicio para el servidor
+# Comando de inicio para el servidor (cambiado a app.js según package.json)
 CMD ["node", "--max_old_space_size=256", "server.js"]
