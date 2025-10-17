@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Tee Time - Configuración</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 26px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .note {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        /* LOGS */
+        .logs-container {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .logs-container.show {
+            display: block;
+        }
+
+        .logs-header {
+            background: #333;
+            color: white;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logs-box {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-line {
+            margin-bottom: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .log-success {
+            color: #4ade80;
+        }
+
+        .log-error {
+            color: #f87171;
+        }
+
+        .log-warning {
+            color: #fbbf24;
+        }
+
+        .log-info {
+            color: #60a5fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-running {
+            background: #4ade80;
+            color: #1e1e1e;
+        }
+
+        .status-waiting {
+            background: #fbbf24;
+            color: #1e1e1e;
+        }
+
+        .status-error {
+            background: #f87171;
+            color: white;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .clear-btn {
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .clear-btn:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <div class="icon">🏌️‍♂️</div>
+                <h1>Bot Tee Time</h1>
+                <p class="subtitle">Club Campestre Bucaramanga</p>
+            </div>
+
+            <div class="note">
+                ℹ️ <strong>Nota:</strong> Asegúrate de tener configurado Twilio en tu archivo <code>.env</code> antes de iniciar el bot.
+            </div>
+
+            <form id="configForm">
+                <div class="form-group">
+                    <label for="usuario">👤 Usuario del Club</label>
+                    <input type="text" id="usuario" placeholder="Ejemplo: 4110" required autofocus>
+                    <div class="hint">Tu número de socio</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">🔒 Contraseña</label>
+                    <input type="password" id="password" placeholder="Tu contraseña" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="whatsapp">📱 Tu WhatsApp</label>
+                    <input type="text" id="whatsapp" placeholder="+573001234567" required>
+                    <div class="hint">Formato: +57 seguido de tu número (10 dígitos)</div>
+                </div>
+
+                <button type="submit" id="submitBtn">
+                    🚀 Iniciar Bot en Modo Turbo
+                </button>
+            </form>
+        </div>
+
+        <div class="card logs-container" id="logsContainer">
+            <div class="logs-header">
+                <div>
+                    <span>📊 Logs del Bot en Tiempo Real</span>
+                    <span class="status-badge status-running" id="statusBadge">● CORRIENDO</span>
+                </div>
+                <button class="clear-btn" onclick="clearLogs()">Limpiar</button>
+            </div>
+            <div class="logs-box" id="logsBox">
+                <div class="log-line log-info">Esperando inicio del bot...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const form = document.getElementById('configForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const logsContainer = document.getElementById('logsContainer');
+        const logsBox = document.getElementById('logsBox');
+        const statusBadge = document.getElementById('statusBadge');
+
+        // Socket.io connection
+        const socket = io();
+
+        // Cargar datos guardados
+        window.addEventListener('load', function() {
+            const saved = localStorage.getItem('botData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                document.getElementById('usuario').value = data.usuario || '';
+                document.getElementById('whatsapp').value = data.whatsapp || '';
+            }
+        });
+
+        // Escuchar logs del bot
+        socket.on('bot-log', function(data) {
+            addLog(data.message, data.type);
+        });
+
+        socket.on('bot-status', function(data) {
+            updateStatus(data.status);
+        });
+
+        function addLog(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `log-line log-${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString('es-CO');
+            line.textContent = `[${timestamp}] ${message}`;
+            
+            logsBox.appendChild(line);
+            logsBox.scrollTop = logsBox.scrollHeight;
+        }
+
+        function updateStatus(status) {
+            statusBadge.className = 'status-badge';
+            
+            switch(status) {
+                case 'running':
+                    statusBadge.className += ' status-running';
+                    statusBadge.textContent = '● CORRIENDO';
+                    break;
+                case 'waiting':
+                    statusBadge.className += ' status-waiting';
+                    statusBadge.textContent = '⏳ ESPERANDO';
+                    break;
+                case 'error':
+                    statusBadge.className += ' status-error';
+                    statusBadge.textContent = '❌ ERROR';
+                    break;
+            }
+        }
+
+        function clearLogs() {
+            logsBox.innerHTML = '<div class="log-line log-info">Logs limpiados...</div>';
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const usuario = document.getElementById('usuario').value;
+            const password = document.getElementById('password').value;
+            let whatsapp = document.getElementById('whatsapp').value.trim();
+
+            if (!whatsapp.startsWith('+')) {
+                whatsapp = '+' + whatsapp;
+            }
+
+            localStorage.setItem('botData', JSON.stringify({ usuario, whatsapp }));
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loader"></span> Iniciando bot...';
+            
+            // Mostrar logs
+            logsContainer.classList.add('show');
+            logsBox.innerHTML = '';
+            addLog('Enviando configuración al servidor...', 'info');
+
+            try {
+                const response = await fetch('/start-bot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ usuario, password, whatsapp })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    addLog('✅ Bot iniciado correctamente', 'success');
+                    addLog(`Usuario: ${usuario}`, 'info');
+                    addLog(`WhatsApp: ${whatsapp}`, 'info');
+                    addLog('Esperando logs del bot...', 'info');
+                    updateStatus('running');
+                } else {
+                    addLog(`❌ Error: ${result.error}`, 'error');
+                    updateStatus('error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🚀 Iniciar Bot en Modo Turbo';
+                }
+            } catch (error) {
+                addLog(`❌ Error de conexión: ${error.message}`, 'error');
+                updateStatus('error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Iniciar Bot en Modo Turbo';
+            }
+        });
+    </script>
+</body>
+</html>
