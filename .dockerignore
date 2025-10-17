@@ -1,1 +1,49 @@
-dockerfile
+node_modules
+npm-debug.log
+yarn-error.log
+.env
+.env.local
+.env.*.local
+.git
+.gitignore
+.vscode
+.idea
+*.log
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.cache
+dist
+build
+coverage
+.next
+.nuxt
+```
+
+---
+
+## **¿Por qué estos archivos?**
+
+- **node_modules** - Se instalan dentro del Docker, no copiar los locales
+- **.env** - Variables sensibles, se pasan como environment variables en Render
+- **.git** - No necesario dentro del contenedor
+- **logs y archivos temporales** - Basura que no se necesita
+
+---
+
+## **Estructura final de tu proyecto:**
+```
+clubcampestre_bott/
+├── node_modules/
+├── .env
+├── .git/
+├── .gitignore
+├── Dockerfile          ← NUEVO
+├── .dockerignore       ← NUEVO
+├── index.html
+├── server.js
+├── app_turbo.js
+├── package.json
+└── package-lock.json
