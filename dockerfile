@@ -1,12 +1,13 @@
 # Usa la imagen oficial de Puppeteer como base
 FROM ghcr.io/puppeteer/puppeteer:21.0.0
 
-# Variables de entorno para optimización
+# Variables de entorno para optimización y seguridad
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable \
     NODE_ENV=production \
     PORT=3000 \
-    NODE_OPTIONS=--max_old_space_size=256
+    NODE_OPTIONS=--max_old_space_size=256 \
+    DEBIAN_FRONTEND=noninteractive
 
 # Cambia al usuario root para instalaciones
 USER root
@@ -14,46 +15,48 @@ USER root
 # Establece el directorio de trabajo
 WORKDIR /usr/src/app
 
-# Instala dependencias del sistema y Chrome
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    wget \
-    gnupg \
-    ca-certificates \
-    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+# Instala dependencias del sistema con método alternativo
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        wget \
+        gnupg \
+        ca-certificates \
+        curl \
+    && curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-    google-chrome-stable \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcairo2 \
-    libcups2 \
-    libdbus-1-3 \
-    libexpat1 \
-    libgbm1 \
-    libglib2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libpango-1.0-0 \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    xdg-utils \
+        google-chrome-stable \
+        fonts-liberation \
+        libasound2 \
+        libatk-bridge2.0-0 \
+        libatk1.0-0 \
+        libcairo2 \
+        libcups2 \
+        libdbus-1-3 \
+        libexpat1 \
+        libgbm1 \
+        libglib2.0-0 \
+        libgtk-3-0 \
+        libnspr4 \
+        libnss3 \
+        libpango-1.0-0 \
+        libx11-6 \
+        libx11-xcb1 \
+        libxcomposite1 \
+        libxcursor1 \
+        libxdamage1 \
+        libxext6 \
+        libxfixes3 \
+        libxi6 \
+        libxrandr2 \
+        libxrender1 \
+        libxss1 \
+        libxtst6 \
+        xdg-utils \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/cache/apt/archives/*
 
 # Copia archivos de dependencias
 COPY package*.json ./
@@ -77,5 +80,5 @@ USER pptruser
 # Expone el puerto del servidor
 EXPOSE 3000
 
-# Comando de inicio para el servidor (cambiado a app.js según package.json)
-CMD ["node", "--max_old_space_size=256", "server.js"]
+# Comando de inicio para el servidor (ajustado a app.js según package.json)
+CMD ["node", "--max_old_space_size=256", "app.js"]
