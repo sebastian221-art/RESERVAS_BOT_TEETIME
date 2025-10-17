@@ -103,7 +103,7 @@ const browser = await puppeteer.launch({
     '--disable-software-rasterizer',
     '--disable-extensions'
   ],
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath()
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable'
 });
 
   const page = await browser.newPage();
