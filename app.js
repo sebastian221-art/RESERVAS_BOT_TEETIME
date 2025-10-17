@@ -3,6 +3,10 @@
 import 'dotenv/config';
 import puppeteer from 'puppeteer';
 import Twilio from 'twilio';
+import os from 'os';
+
+const isLinux = os.platform() === 'linux';
+
 
 // Obtener usuario, contraseña y whatsapp de argumentos o .env
 const USER_CLUB = process.argv[2] || process.env.USER_CLUB;
@@ -92,7 +96,7 @@ async function startBotTurbo() {
   console.log(`   - Inicio: ${TURBO_CONFIG.START_MINUTES_BEFORE} min antes`);
   console.log(`   - Hora objetivo: ${TURBO_CONFIG.TARGET_HOUR}:${String(TURBO_CONFIG.TARGET_MINUTE).padStart(2, '0')} PM\n`);
 const browser = await puppeteer.launch({
-  headless: 'new',
+  headless: "new",
   defaultViewport: null,
   args: [
     '--no-sandbox',
@@ -101,9 +105,14 @@ const browser = await puppeteer.launch({
     '--disable-gpu',
     '--disable-blink-features=AutomationControlled',
     '--disable-software-rasterizer',
-    '--disable-extensions'
+    '--disable-extensions',
+    '--no-zygote',
+    '--single-process'
   ],
-  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable'
+  executablePath: isLinux
+    ? '/usr/bin/chromium' // Render
+    : puppeteer.executablePath(), // Windows local
+  timeout: 0
 });
 
   const page = await browser.newPage();
