@@ -24,7 +24,7 @@ EXPOSE 3000
 # Comando de inicio
 CMD ["node", "server.js"]
 
-node_modules
+\node_modules
 .env
 .git
 .gitignore
