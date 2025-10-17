@@ -102,18 +102,34 @@ const browser = await puppeteer.launch({
     "--no-sandbox",
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
+    "--disable-accelerated-2d-canvas",
     "--disable-gpu",
     "--disable-blink-features=AutomationControlled",
     "--disable-software-rasterizer",
     "--disable-extensions",
     "--no-zygote",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-networking",
+    "--disable-background-timer-throttling",
+    "--disable-client-side-phishing-detection",
+    "--disable-default-apps",
+    "--disable-hang-monitor",
+    "--disable-popup-blocking",
+    "--disable-prompt-on-repost",
+    "--disable-sync",
+    "--metrics-recording-only",
+    "--mute-audio",
+    "--password-store=basic",
+    "--use-mock-keychain",
     "--single-process"
   ],
-  executablePath: isLinux
-    ? "/usr/bin/google-chrome-stable" // ✅ Render usa Chrome, no Chromium
+  executablePath: process.platform === "linux"
+    ? "/usr/bin/google-chrome-stable" // ✅ Chrome correcto para Render
     : puppeteer.executablePath(),
   timeout: 0
 });
+
 
 
   const page = await browser.newPage();
