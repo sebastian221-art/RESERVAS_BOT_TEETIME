@@ -37,7 +37,7 @@ io.on('connection', (socket) => {
 
 // Función para enviar logs a todos los clientes conectados
 function sendLog(message, type = 'info') {
-  console.log(message); // También mostrar en consola del servidor
+  console.log(message);
   io.emit('bot-log', { message, type });
 }
 
@@ -47,11 +47,15 @@ function sendStatus(status) {
 
 // Ruta para iniciar el bot
 app.post('/start-bot', (req, res) => {
-  const { usuario, password, whatsapp } = req.body;
+  const { usuario, password, whatsapp, codigo1, codigo2 } = req.body;
 
   // Validaciones
   if (!usuario || !password || !whatsapp) {
     return res.status(400).json({ error: 'Usuario, contraseña y WhatsApp son requeridos' });
+  }
+
+  if (!codigo1 || !codigo2) {
+    return res.status(400).json({ error: 'Los 2 códigos de socios son requeridos' });
   }
 
   // Formatear WhatsApp para Twilio
@@ -60,19 +64,28 @@ app.post('/start-bot', (req, res) => {
     formattedWhatsapp = 'whatsapp:' + formattedWhatsapp;
   }
 
-  console.log('\n🚀 Iniciando bot con configuración:');
+  console.log('\n🚀 Iniciando bot en MODO TURBO ULTRA-RÁPIDO:');
   console.log(`   Usuario: ${usuario}`);
   console.log(`   WhatsApp: ${formattedWhatsapp}`);
-  console.log(`   Modo: ⚡ TURBO\n`);
+  console.log(`   Códigos: ${codigo1}, ${codigo2}`);
+  console.log(`   Polling: 250ms | Sync: 2 min antes\n`);
 
-  sendLog('🚀 Iniciando bot en modo TURBO...', 'info');
+  sendLog('🚀 Iniciando bot en modo TURBO ULTRA-RÁPIDO...', 'info');
   sendLog(`Usuario: ${usuario}`, 'info');
   sendLog(`WhatsApp: ${formattedWhatsapp}`, 'info');
+  sendLog(`Códigos socios: ${codigo1}, ${codigo2}`, 'info');
   sendStatus('running');
 
   try {
-    // Ejecutar app_turbo.js pasando usuario, contraseña y whatsapp
-    botProcess = spawn('node', ['app.js', usuario, password, formattedWhatsapp], {
+    // Ejecutar app.js
+    botProcess = spawn('node', [
+      'app.js', 
+      usuario, 
+      password, 
+      formattedWhatsapp,
+      codigo1,
+      codigo2
+    ], {
       cwd: __dirname,
       env: process.env
     });
@@ -85,7 +98,6 @@ app.post('/start-bot', (req, res) => {
       lines.forEach(line => {
         if (!line) return;
         
-        // Detectar tipo de log por contenido
         let type = 'info';
         if (line.includes('✅') || line.includes('✔️')) {
           type = 'success';
@@ -129,8 +141,8 @@ app.post('/start-bot', (req, res) => {
 
     res.json({ 
       success: true, 
-      message: 'Bot iniciado en modo turbo',
-      details: `Usuario: ${usuario}<br>WhatsApp: ${formattedWhatsapp}<br><br>Logs en tiempo real activados.`
+      message: 'Bot iniciado en modo turbo ultra-rápido',
+      details: `Usuario: ${usuario}<br>WhatsApp: ${formattedWhatsapp}<br>Códigos: ${codigo1}, ${codigo2}<br><br>Logs en tiempo real activados.`
     });
 
   } catch (error) {
@@ -144,13 +156,14 @@ app.post('/start-bot', (req, res) => {
 // Iniciar servidor
 httpServer.listen(PORT, () => {
   console.log('╔════════════════════════════════════════════╗');
-  console.log('║   🏌️‍♂️  Bot Tee Time - Servidor Web    🏌️‍♂️   ║');
+  console.log('║   🏌️‍♂️  Bot Tee Time - Modo Turbo    🏌️‍♂️   ║');
   console.log('╚════════════════════════════════════════════╝');
   console.log(`\n✅ Servidor corriendo en: http://localhost:${PORT}`);
   console.log(`✅ Socket.io activo para logs en tiempo real`);
-  console.log(`\n📋 Pasos:`);
+  console.log(`⚡ Modo: Ultra-rápido (250ms polling)\n`);
+  console.log(`📋 Pasos:`);
   console.log(`   1. Asegúrate de tener Twilio configurado en .env`);
   console.log(`   2. Abre: http://localhost:${PORT}`);
-  console.log(`   3. Ingresa usuario, contraseña y WhatsApp`);
-  console.log(`   4. ¡Verás los logs en tiempo real!\n`);
+  console.log(`   3. Ingresa credenciales y códigos de socios`);
+  console.log(`   4. ¡El bot se sincronizará y reservará automáticamente!\n`);
 });

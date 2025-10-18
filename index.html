@@ -115,6 +115,22 @@
             margin-bottom: 20px;
         }
 
+        .section-title {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 25px 0 15px 0;
+            font-weight: 600;
+            color: #495057;
+            font-size: 15px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
         /* LOGS */
         .logs-container {
             display: none;
@@ -223,6 +239,12 @@
         .clear-btn:hover {
             background: #4b5563;
         }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -230,15 +252,17 @@
         <div class="card">
             <div class="header">
                 <div class="icon">🏌️‍♂️</div>
-                <h1>Bot Tee Time</h1>
+                <h1>Bot Tee Time - Modo Turbo</h1>
                 <p class="subtitle">Club Campestre Bucaramanga</p>
             </div>
 
             <div class="note">
-                ℹ️ <strong>Nota:</strong> Asegúrate de tener configurado Twilio en tu archivo <code>.env</code> antes de iniciar el bot.
+                ⚡ <strong>Modo Ultra-Rápido:</strong> El bot se sincronizará automáticamente y buscará el primer horario disponible desde las 6:10 AM. Asegúrate de tener Twilio configurado en <code>.env</code>.
             </div>
 
             <form id="configForm">
+                <div class="section-title">🔐 Credenciales de Acceso</div>
+
                 <div class="form-group">
                     <label for="usuario">👤 Usuario del Club</label>
                     <input type="text" id="usuario" placeholder="Ejemplo: 4110" required autofocus>
@@ -256,8 +280,22 @@
                     <div class="hint">Formato: +57 seguido de tu número (10 dígitos)</div>
                 </div>
 
+                <div class="section-title">👥 Códigos de Socios Adicionales (2 jugadores)</div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label for="codigo1">👤 Código Socio 1</label>
+                        <input type="text" id="codigo1" placeholder="4114" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="codigo2">👤 Código Socio 2</label>
+                        <input type="text" id="codigo2" placeholder="4144" required>
+                    </div>
+                </div>
+
                 <button type="submit" id="submitBtn">
-                    🚀 Iniciar Bot en Modo Turbo
+                    🚀 Iniciar Bot en Modo Turbo Ultra-Rápido
                 </button>
             </form>
         </div>
@@ -294,6 +332,8 @@
                 const data = JSON.parse(saved);
                 document.getElementById('usuario').value = data.usuario || '';
                 document.getElementById('whatsapp').value = data.whatsapp || '';
+                document.getElementById('codigo1').value = data.codigo1 || '';
+                document.getElementById('codigo2').value = data.codigo2 || '';
             }
         });
 
@@ -346,15 +386,22 @@
             const usuario = document.getElementById('usuario').value;
             const password = document.getElementById('password').value;
             let whatsapp = document.getElementById('whatsapp').value.trim();
+            const codigo1 = document.getElementById('codigo1').value.trim();
+            const codigo2 = document.getElementById('codigo2').value.trim();
 
             if (!whatsapp.startsWith('+')) {
                 whatsapp = '+' + whatsapp;
             }
 
-            localStorage.setItem('botData', JSON.stringify({ usuario, whatsapp }));
+            localStorage.setItem('botData', JSON.stringify({ 
+                usuario, 
+                whatsapp,
+                codigo1,
+                codigo2
+            }));
 
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="loader"></span> Iniciando bot...';
+            submitBtn.innerHTML = '<span class="loader"></span> Iniciando bot ultra-rápido...';
             
             // Mostrar logs
             logsContainer.classList.add('show');
@@ -367,7 +414,13 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ usuario, password, whatsapp })
+                    body: JSON.stringify({ 
+                        usuario, 
+                        password, 
+                        whatsapp,
+                        codigo1,
+                        codigo2
+                    })
                 });
 
                 const result = await response.json();
@@ -376,19 +429,20 @@
                     addLog('✅ Bot iniciado correctamente', 'success');
                     addLog(`Usuario: ${usuario}`, 'info');
                     addLog(`WhatsApp: ${whatsapp}`, 'info');
+                    addLog(`Códigos: ${codigo1}, ${codigo2}`, 'info');
                     addLog('Esperando logs del bot...', 'info');
                     updateStatus('running');
                 } else {
                     addLog(`❌ Error: ${result.error}`, 'error');
                     updateStatus('error');
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '🚀 Iniciar Bot en Modo Turbo';
+                    submitBtn.innerHTML = '🚀 Iniciar Bot en Modo Turbo Ultra-Rápido';
                 }
             } catch (error) {
                 addLog(`❌ Error de conexión: ${error.message}`, 'error');
                 updateStatus('error');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '🚀 Iniciar Bot en Modo Turbo';
+                submitBtn.innerHTML = '🚀 Iniciar Bot en Modo Turbo Ultra-Rápido';
             }
         });
     </script>
