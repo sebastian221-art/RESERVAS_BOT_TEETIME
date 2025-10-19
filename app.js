@@ -1,4 +1,4 @@
-// app_speed_test.js - MODO ULTRA-RÁPIDO CORREGIDO (Click en botones, no en texto)
+// app.js - INICIO CON DEBUG
 import 'dotenv/config';
 import puppeteer from 'puppeteer';
 import Twilio from 'twilio';
@@ -11,35 +11,72 @@ const CODIGO_SOCIO_2 = process.argv[6] || process.env.CODIGO_SOCIO_2;
 
 const { TWILIO_SID, AUTH_TOKEN, TWILIO_WHATSAPP } = process.env;
 
+// ✅ DEBUG: Ver qué está recibiendo
+console.log('\n🔍 DEBUG - ARGUMENTOS RECIBIDOS:');
+console.log('   process.argv[2] (USER_CLUB):', process.argv[2]);
+console.log('   process.argv[3] (PASS_CLUB):', process.argv[3] ? '***' : 'undefined');
+console.log('   process.argv[4] (TARGET_WHATSAPP):', process.argv[4]);
+console.log('   process.argv[5] (CODIGO_SOCIO_1):', process.argv[5]);
+console.log('   process.argv[6] (CODIGO_SOCIO_2):', process.argv[6]);
+
+console.log('\n🔍 DEBUG - CREDENCIALES TWILIO:');
+console.log('   TWILIO_SID:', TWILIO_SID);
+console.log('   AUTH_TOKEN:', AUTH_TOKEN ? '***' + AUTH_TOKEN.slice(-4) : 'undefined');
+console.log('   TWILIO_WHATSAPP:', TWILIO_WHATSAPP);
+console.log('   TARGET_WHATSAPP (final):', TARGET_WHATSAPP);
+console.log('');
+
 if (!USER_CLUB || !PASS_CLUB || !TWILIO_SID || !AUTH_TOKEN || !TWILIO_WHATSAPP || !TARGET_WHATSAPP || !CODIGO_SOCIO_1 || !CODIGO_SOCIO_2) {
+  console.error('❌ FALTAN CREDENCIALES:');
+  console.error('   USER_CLUB:', !!USER_CLUB);
+  console.error('   PASS_CLUB:', !!PASS_CLUB);
+  console.error('   TWILIO_SID:', !!TWILIO_SID);
+  console.error('   AUTH_TOKEN:', !!AUTH_TOKEN);
+  console.error('   TWILIO_WHATSAPP:', !!TWILIO_WHATSAPP);
+  console.error('   TARGET_WHATSAPP:', !!TARGET_WHATSAPP);
+  console.error('   CODIGO_SOCIO_1:', !!CODIGO_SOCIO_1);
+  console.error('   CODIGO_SOCIO_2:', !!CODIGO_SOCIO_2);
   throw new Error('❌ Faltan credenciales');
 }
 
 const twClient = Twilio(TWILIO_SID, AUTH_TOKEN);
 const CODIGOS_SOCIOS = [CODIGO_SOCIO_1, CODIGO_SOCIO_2];
 
-// ⚡ CONFIGURACIÓN ULTRA-RÁPIDA
+// ... resto del código
+
 const TURBO_CONFIG = {
-  POLL_INTERVAL_MS: 100,           // Polling cada 100ms (MUY rápido)
-  CLICK_DELAY_MS: 30,              // Delay mínimo 30ms
-  TARGET_HOUR: 14,                 // 2 PM
+  POLL_INTERVAL_MS: 100,
+  CLICK_DELAY_MS: 30,
+  TARGET_HOUR: 14,
   TARGET_MINUTE: 0,
-  SECONDS_BEFORE: 2,               // Iniciar 2 segundos antes
-  MAX_ATTEMPTS: 200,               // Intentos máximos
-  MIN_HOUR: 6,                     
+  SECONDS_BEFORE: 2,
+  MAX_ATTEMPTS: 200,
+  MIN_HOUR: 6,
   MIN_MINUTE: 10
 };
 
 async function sendWhats(msg) {
   try {
-    await twClient.messages.create({
+    console.log('\n📤 Enviando WhatsApp...');
+    console.log(`   From: ${TWILIO_WHATSAPP}`);
+    console.log(`   To: ${TARGET_WHATSAPP}`);
+    
+    const message = await twClient.messages.create({
       from: TWILIO_WHATSAPP,
       to: TARGET_WHATSAPP,
       body: msg
     });
-    console.log('✅ WhatsApp enviado');
-  } catch (e) {
-    console.error('❌ Error WhatsApp:', e.message);
+
+    console.log('✅ WhatsApp enviado!');
+    console.log(`   SID: ${message.sid}`);
+    console.log(`   Status: ${message.status}\n`);
+    
+    return true;
+  } catch (error) {
+    console.error('\n❌ ERROR WhatsApp:');
+    console.error(`   Código: ${error.code}`);
+    console.error(`   Mensaje: ${error.message}\n`);
+    return false;
   }
 }
 
@@ -69,12 +106,26 @@ async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
 }
 
 async function startSpeedTest() {
-  console.log('🏁 MODO ULTRA-RÁPIDO - OPTIMIZADO');
+  console.log('╔════════════════════════════════════════════╗');
+  console.log('║   🏌️‍♂️  BOT TEE TIME - ULTRA-RÁPIDO 🏌️‍♂️    ║');
+  console.log('╚════════════════════════════════════════════╝\n');
+  
   console.log('⚡ Configuración:');
-  console.log(`   - Polling: cada ${TURBO_CONFIG.POLL_INTERVAL_MS}ms`);
-  console.log(`   - Click directo en botones (NO busca texto ACTIVO)`);
-  console.log(`   - Refresh a las 2:00:00 PM exactas`);
-  console.log(`   - Horario mínimo: ${String(TURBO_CONFIG.MIN_HOUR).padStart(2, '0')}:${String(TURBO_CONFIG.MIN_MINUTE).padStart(2, '0')} AM\n`);
+  console.log(`   - Usuario: ${USER_CLUB}`);
+  console.log(`   - Socios: ${CODIGOS_SOCIOS.join(', ')}`);
+  console.log(`   - WhatsApp: ${TARGET_WHATSAPP}`);
+  console.log(`   - Polling: ${TURBO_CONFIG.POLL_INTERVAL_MS}ms`);
+  console.log(`   - Horario mínimo: 6:10 AM\n`);
+
+  // MENSAJE 1: INICIO
+  await sendWhats(
+    `🏌️‍♂️ BOT TEE TIME INICIADO\n\n` +
+    `👤 Usuario: ${USER_CLUB}\n` +
+    `👥 Socios: ${CODIGOS_SOCIOS.join(', ')}\n` +
+    `⏰ Horario mínimo: 6:10 AM\n\n` +
+    `🤖 Esperando hasta las 2:00 PM...\n\n` +
+    `Recibirás otro mensaje cuando se complete la reserva.`
+  );
 
   const browser = await puppeteer.launch({
     headless: false,
@@ -101,7 +152,6 @@ async function startSpeedTest() {
   try {
     const startTime = Date.now();
     
-    // LOGIN
     console.log('🌐 Iniciando sesión...');
     await page.goto('https://clubcampestrebucaramanga.com/empresa/login', {
       waitUntil: 'networkidle2'
@@ -119,7 +169,6 @@ async function startSpeedTest() {
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
     console.log('✔️ Login OK\n');
 
-    // CLICK TEE TIME
     console.log('📋 Accediendo a Tee Time...');
     
     await page.waitForFunction(() => {
@@ -138,7 +187,6 @@ async function startSpeedTest() {
     console.log('✔️ Click ejecutado');
     await sleep(10000);
 
-    // ACCEDER AL IFRAME
     console.log('🖼️ Buscando iframe...');
     
     let iframeFound = false;
@@ -178,7 +226,6 @@ async function startSpeedTest() {
     
     console.log('✔️ Frame OK\n');
 
-    // ESPERAR TABLA
     console.log('📅 Cargando tabla de días...');
     
     await frame.waitForSelector('#contenido', { timeout: 60000 });
@@ -193,7 +240,6 @@ async function startSpeedTest() {
     
     console.log('✔️ Tabla OK\n');
 
-    // CLICK EN SEGUNDO DÍA
     console.log('📆 Seleccionando día de mañana...');
     
     const secondDayInfo = await frame.evaluate(() => {
@@ -224,12 +270,10 @@ async function startSpeedTest() {
     console.log('✔️ Click ejecutado');
     await sleep(10000);
 
-    // ESPERAR HORARIOS
     console.log('⏳ Cargando horarios...');
     await frame.waitForSelector('#tee-time', { timeout: 60000 });
     console.log('✔️ Horarios cargados\n');
 
-    // ⚡ SINCRONIZACIÓN EXACTA - Esperar hasta 1:59:58 PM
     console.log('🕐 Sincronizando con 2:00:00 PM...');
     await waitUntilExactTime(
       TURBO_CONFIG.TARGET_HOUR, 
@@ -238,28 +282,25 @@ async function startSpeedTest() {
     );
     
     console.log('⚡ A 2 SEGUNDOS DE LAS 2 PM - Preparando...\n');
-    await sleep(1500); // Esperar 1.5 seg más (ahora falta 0.5 seg)
+    await sleep(1500);
 
-    // 🔄 REFRESH JUSTO ANTES DE LAS 2 PM
     console.log('🔄 Haciendo REFRESH...');
     await frame.evaluate(() => {
       const refreshBtn = document.querySelector("a.refresh");
       if (refreshBtn) refreshBtn.click();
     });
-    await sleep(500); // Esperar a que cargue el refresh
+    await sleep(500);
 
-    console.log('⚡ SON LAS 2:00:00 PM - POLLING ULTRA-RÁPIDO INICIADO!\n');
+    console.log('⚡ SON LAS 2:00:00 PM - POLLING INICIADO!\n');
     
     const pollStart = Date.now();
     let clicked = false;
     let selectedTime = '';
     let pollCount = 0;
 
-    // ⚡ POLLING ULTRA-RÁPIDO DE BOTONES (NO DE TEXTO)
     for (let attempt = 1; attempt <= TURBO_CONFIG.MAX_ATTEMPTS && !clicked; attempt++) {
       pollCount++;
 
-      // BUSCAR BOTONES DISPONIBLES (lo más rápido posible)
       const candidates = await frame.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('#tee-time a[onclick*="xajax_teeTimeDetalle"]'));
         
@@ -275,14 +316,11 @@ async function startSpeedTest() {
         }).filter(b => b.text.length > 0);
       });
 
-      // Si hay botones disponibles, procesar inmediatamente
       if (candidates.length > 0) {
-        // Log solo en el primer intento exitoso
         if (pollCount === 1 || (pollCount > 1 && attempt === 1)) {
           console.log(`📊 ${candidates.length} slots detectados!`);
         }
 
-        // FILTRAR >= 6:10 AM
         const available = candidates.filter(c => {
           const match = c.text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
           if (!match) return false;
@@ -300,7 +338,6 @@ async function startSpeedTest() {
           return timeInMinutes >= minTime;
         });
         
-        // ORDENAR
         available.sort((a, b) => {
           const matchA = a.text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
           const matchB = b.text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
@@ -330,7 +367,6 @@ async function startSpeedTest() {
           const target = available[0];
           console.log(`⚡ Intento ${attempt} (${pollCount} polls): ${target.text}`);
 
-          // ⚡ CLICK INMEDIATO
           const clickSuccess = await frame.evaluate((targetOnclick) => {
             const buttons = Array.from(document.querySelectorAll('#tee-time a[onclick*="xajax_teeTimeDetalle"]'));
             const targetBtn = buttons.find(btn => btn.getAttribute('onclick') === targetOnclick);
@@ -347,8 +383,8 @@ async function startSpeedTest() {
             const totalTime = ((Date.now() - pollStart) / 1000).toFixed(3);
             
             console.log('\n🎉 ¡HORARIO CAPTURADO!');
-            console.log(`⚡ Tiempo desde las 2 PM: ${totalTime}s`);
-            console.log(`📊 Total de polls: ${pollCount}`);
+            console.log(`⚡ Tiempo: ${totalTime}s`);
+            console.log(`📊 Polls: ${pollCount}`);
             console.log(`📅 Día: ${secondDayInfo.dayText}`);
             console.log(`⏰ Horario: ${target.text}\n`);
             
@@ -357,23 +393,24 @@ async function startSpeedTest() {
         }
       }
 
-      // Log cada 20 intentos (solo si no hay slots)
       if (pollCount % 20 === 0 && candidates.length === 0) {
         const elapsed = ((Date.now() - pollStart) / 1000).toFixed(1);
-        console.log(`⏳ ${pollCount} polls | ${elapsed}s | Esperando slots...`);
+        console.log(`⏳ ${pollCount} polls | ${elapsed}s | Esperando...`);
       }
 
-      // Delay mínimo entre intentos
       await sleep(TURBO_CONFIG.POLL_INTERVAL_MS);
     }
 
     if (!clicked) {
-      console.log('\n❌ No se logró capturar horario');
-      await sendWhats('⚠️ No se capturó horario.');
+      console.log('\n❌ No se capturó horario');
+      await sendWhats(
+        `❌ BOT TEE TIME - SIN HORARIO\n\n` +
+        `No se encontró ningún horario disponible >= 6:10 AM.\n\n` +
+        `Verifica manualmente en el club.`
+      );
       return;
     }
 
-    // LLENAR FORMULARIO RÁPIDAMENTE
     console.log('📝 Llenando formulario...\n');
     await sleep(2000);
 
@@ -443,14 +480,12 @@ async function startSpeedTest() {
     console.log('✔️\n');
     await sleep(800);
 
-    // AGREGAR SOCIOS
     console.log('🔍 AGREGANDO SOCIOS...\n');
 
     for (let i = 0; i < CODIGOS_SOCIOS.length; i++) {
       const codigo = CODIGOS_SOCIOS[i];
       console.log(`📝 Socio ${i + 1}/2: ${codigo}`);
 
-      // RE-SELECCIONAR "OTROS SOCIOS"
       await frame.evaluate(() => {
         const radio = document.querySelector('#socio');
         if (radio) {
@@ -524,7 +559,6 @@ async function startSpeedTest() {
       }
     }
 
-    // FINALIZAR
     console.log('🎯 Finalizando...');
     await sleep(2500);
 
@@ -543,24 +577,40 @@ async function startSpeedTest() {
     }
 
     const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    const captureTime = ((Date.now() - pollStart) / 1000).toFixed(3);
     
     console.log('🎉 ¡RESERVA COMPLETADA!');
     console.log(`⚡ Tiempo total: ${totalTime}s`);
     console.log(`📅 ${secondDayInfo.dayText}`);
     console.log(`⏰ ${selectedTime}\n`);
     
+    // MENSAJE 2: ÉXITO
     await sendWhats(
       `✅ ¡RESERVA COMPLETADA! 🏌️‍♂️\n\n` +
-      `📅 ${secondDayInfo.dayText}\n` +
-      `⏰ ${selectedTime}\n` +
-      `⚡ ${totalTime}s`
+      `📅 Día: ${secondDayInfo.dayText}\n` +
+      `⏰ Horario: ${selectedTime}\n\n` +
+      `👥 Jugadores:\n` +
+      `   • ${USER_CLUB} (tú)\n` +
+      `   • ${CODIGOS_SOCIOS[0]}\n` +
+      `   • ${CODIGOS_SOCIOS[1]}\n\n` +
+      `⚡ Velocidad: ${captureTime}s\n` +
+      `⏱️ Tiempo total: ${totalTime}s\n\n` +
+      `🚗 Sin carro\n` +
+      `💳 Cargo al Carnet\n\n` +
+      `✅ Todo listo para jugar!`
     );
 
     console.log('✅ Navegador abierto\n');
 
   } catch (err) {
     console.error('\n❌ ERROR:', err.message);
-    await sendWhats(`❌ ${err.message}`);
+    
+    // MENSAJE 3: ERROR
+    await sendWhats(
+      `❌ BOT TEE TIME - ERROR\n\n` +
+      `Error: ${err.message}\n\n` +
+      `Verifica manualmente o revisa los logs del servidor.`
+    );
   }
 }
 
