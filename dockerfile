@@ -1,4 +1,4 @@
-# Usa la imagen oficial de Puppeteer (ya tiene Chrome y todo lo necesario)
+# Usa la imagen oficial de Puppeteer
 FROM ghcr.io/puppeteer/puppeteer:21.6.1
 
 # Variables de entorno
@@ -13,8 +13,8 @@ WORKDIR /usr/src/app
 # Copia package files
 COPY package*.json ./
 
-# Instala dependencias de Node.js
-RUN npm ci --only=production --silent && npm cache clean --force
+# Instala dependencias (CORREGIDO)
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copia el código
 COPY . .
@@ -22,7 +22,7 @@ COPY . .
 # Expone puerto
 EXPOSE 10000
 
-# Usuario no-root (ya existe en la imagen base)
+# Usuario no-root
 USER pptruser
 
 # Inicia el servidor
