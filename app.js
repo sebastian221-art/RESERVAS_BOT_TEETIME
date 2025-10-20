@@ -1,4 +1,4 @@
-// app.js - VERSIÓN FINAL CON MEJOR MANEJO DE ERRORES
+// app.js - VERSIÓN FINAL CON CORRECCIONES
 import 'dotenv/config';
 import puppeteer from 'puppeteer';
 import Twilio from 'twilio';
@@ -71,11 +71,21 @@ async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
   const waitMs = target - now;
   
   if (waitMs > 0) {
-    const minutes = Math.floor(waitMs / 60000);
+    const hours = Math.floor(waitMs / 3600000);
+    const minutes = Math.floor((waitMs % 3600000) / 60000);
     const seconds = Math.floor((waitMs % 60000) / 1000);
+    
     console.log(`⏰ Esperando hasta ${target.toLocaleTimeString('es-CO')}`);
-    console.log(`   (Faltan ${minutes} min ${seconds} seg)\n`);
+    
+    if (hours > 0) {
+      console.log(`   (Faltan ${hours} horas ${minutes} min ${seconds} seg)\n`);
+    } else {
+      console.log(`   (Faltan ${minutes} min ${seconds} seg)\n`);
+    }
+    
     await sleep(waitMs);
+  } else {
+    console.log('⚡ Ya pasó la hora objetivo, ejecutando inmediatamente...\n');
   }
 }
 
@@ -120,7 +130,7 @@ async function startSpeedTest() {
   console.log('🌐 Iniciando navegador...');
   
   const browser = await puppeteer.launch({
-    headless: isProduction ? true : false,
+    headless: isProduction ? 'new' : false,
     defaultViewport: null,
     args: [
       "--no-sandbox",
@@ -139,7 +149,7 @@ async function startSpeedTest() {
     timeout: 0
   });
 
-  console.log('✅ Navegador iniciado\n');
+  console.log('✅ Navegador iniciado (modo headless moderno)\n');
 
   const page = await browser.newPage();
   page.setDefaultTimeout(90000);
