@@ -57,25 +57,26 @@ async function sendWhats(msg) {
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
 async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
+  // ✅ FORZAR ZONA HORARIA DE COLOMBIA (America/Bogota = UTC-5)
   const now = new Date();
-  const target = new Date();
+  const nowColombia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
   
-  // ✅ Configurar hora objetivo para HOY
+  const target = new Date(nowColombia);
   target.setHours(targetHour, targetMinute, 0 - secondsBefore, 0);
   
-  const waitMs = target - now;
+  const waitMs = target - nowColombia;
   
-  // ✅ Si el tiempo de espera es negativo, ya pasó la hora de hoy
+  console.log(`🌎 Hora actual Colombia: ${nowColombia.toLocaleTimeString('es-CO')}`);
+  console.log(`🎯 Hora objetivo: ${target.toLocaleTimeString('es-CO')}`);
+  
   if (waitMs <= 0) {
     console.log('⚡ Ya pasó la hora objetivo de hoy (2:00 PM)');
     console.log('   El bot debió ejecutarse antes de las 2 PM');
     console.log('   Si quieres reservar para mañana, ejecuta el bot mañana antes de las 2 PM\n');
     
-    // Ir al siguiente día
     target.setDate(target.getDate() + 1);
-    const newWaitMs = target - now;
+    const newWaitMs = target - nowColombia;
     
     const hours = Math.floor(newWaitMs / 3600000);
     const minutes = Math.floor((newWaitMs % 3600000) / 60000);
@@ -86,7 +87,6 @@ async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
     
     await sleep(newWaitMs);
   } else {
-    // ✅ Aún no son las 2 PM de hoy, esperar normalmente
     const hours = Math.floor(waitMs / 3600000);
     const minutes = Math.floor((waitMs % 3600000) / 60000);
     const seconds = Math.floor((waitMs % 60000) / 1000);
@@ -102,7 +102,6 @@ async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
     await sleep(waitMs);
   }
 }
-
 function getTomorrowDate() {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
