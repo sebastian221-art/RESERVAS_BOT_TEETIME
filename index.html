@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot Tee Time - Configuración</title>
+    <title>Bot Tee Time - Modo Turbo Ultra-Rápido</title>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,43 +13,35 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 20px;
         }
 
         .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        .card {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            padding: 30px;
-            margin-bottom: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .icon {
-            font-size: 60px;
-            margin-bottom: 15px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
         }
 
         h1 {
+            text-align: center;
             color: #333;
-            margin-bottom: 5px;
-            font-size: 26px;
+            margin-bottom: 10px;
+            font-size: 28px;
         }
 
         .subtitle {
+            text-align: center;
             color: #666;
+            margin-bottom: 30px;
             font-size: 14px;
         }
 
@@ -58,10 +51,9 @@
 
         label {
             display: block;
+            margin-bottom: 8px;
             color: #333;
             font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
         }
 
         input {
@@ -69,12 +61,14 @@
             padding: 12px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 16px;
+            transition: all 0.3s;
         }
 
         input:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .hint {
@@ -83,142 +77,60 @@
             margin-top: 5px;
         }
 
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
         button {
-            width: 100%;
+            flex: 1;
             padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
             border: none;
             border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            margin-top: 10px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        button:hover {
-            opacity: 0.9;
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(245, 87, 108, 0.4);
         }
 
         button:disabled {
-            background: #ccc;
+            opacity: 0.6;
             cursor: not-allowed;
-        }
-
-        .note {
-            background: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            background: #f8f9fa;
-            padding: 10px 15px;
-            border-radius: 8px;
-            margin: 25px 0 15px 0;
-            font-weight: 600;
-            color: #495057;
-            font-size: 15px;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        /* LOGS */
-        .logs-container {
-            display: none;
-            margin-top: 20px;
-        }
-
-        .logs-container.show {
-            display: block;
-        }
-
-        .logs-header {
-            background: #333;
-            color: white;
-            padding: 15px;
-            border-radius: 8px 8px 0 0;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logs-box {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 20px;
-            border-radius: 0 0 8px 8px;
-            height: 400px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .log-line {
-            margin-bottom: 5px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .log-success {
-            color: #4ade80;
-        }
-
-        .log-error {
-            color: #f87171;
-        }
-
-        .log-warning {
-            color: #fbbf24;
-        }
-
-        .log-info {
-            color: #60a5fa;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-running {
-            background: #4ade80;
-            color: #1e1e1e;
-        }
-
-        .status-waiting {
-            background: #fbbf24;
-            color: #1e1e1e;
-        }
-
-        .status-error {
-            background: #f87171;
-            color: white;
         }
 
         .loader {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #667eea;
             border-radius: 50%;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
             display: inline-block;
-            margin-right: 8px;
-            vertical-align: middle;
         }
 
         @keyframes spin {
@@ -226,104 +138,193 @@
             100% { transform: rotate(360deg); }
         }
 
+        .logs-container {
+            margin-top: 30px;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .logs-container.show {
+            display: block;
+            opacity: 1;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .logs-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
         .clear-btn {
-            background: #374151;
-            color: white;
+            background: #f0f0f0;
+            color: #666;
             border: none;
-            padding: 5px 15px;
+            padding: 8px 15px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
+            transition: all 0.2s;
         }
 
         .clear-btn:hover {
-            background: #4b5563;
+            background: #e0e0e0;
         }
 
-        @media (max-width: 768px) {
-            .grid-2 {
-                grid-template-columns: 1fr;
+        .logs-box {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .log-info { color: #61dafb; }
+        .log-success { color: #98c379; }
+        .log-warning { color: #e5c07b; }
+        .log-error { color: #e06c75; }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-idle { background: #95a5a6; }
+        .status-running { background: #3498db; animation: pulse 2s infinite; }
+        .status-waiting { background: #f39c12; animation: pulse 2s infinite; }
+        .status-completed { background: #2ecc71; }
+        .status-error { background: #e74c3c; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .button-container {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="card">
-            <div class="header">
-                <div class="icon">🏌️‍♂️</div>
-                <h1>Bot Tee Time - Modo Turbo</h1>
-                <p class="subtitle">Club Campestre Bucaramanga</p>
+        <h1>🏌️‍♂️ Bot Tee Time</h1>
+        <p class="subtitle">Modo Turbo Ultra-Rápido | Reserva Automática</p>
+
+        <form id="botForm">
+            <div class="form-group">
+                <label for="usuario">👤 Usuario del Club</label>
+                <input type="text" id="usuario" placeholder="4110" required>
             </div>
 
-            <div class="note">
-                ⚡ <strong>Modo Ultra-Rápido:</strong> El bot se sincronizará automáticamente y buscará el primer horario disponible desde las 6:10 AM. Asegúrate de tener Twilio configurado en <code>.env</code>.
+            <div class="form-group">
+                <label for="password">🔒 Contraseña</label>
+                <input type="password" id="password" placeholder="Tu contraseña" required>
             </div>
 
-            <form id="configForm">
-                <div class="section-title">🔐 Credenciales de Acceso</div>
+            <div class="form-group">
+                <label for="whatsapp">📱 Tu WhatsApp</label>
+                <input type="text" id="whatsapp" placeholder="+573001234567" required>
+                <div class="hint">Formato: +57 seguido de tu número (10 dígitos)</div>
+            </div>
 
-                <div class="form-group">
-                    <label for="usuario">👤 Usuario del Club</label>
-                    <input type="text" id="usuario" placeholder="Ejemplo: 4110" required autofocus>
-                    <div class="hint">Tu número de socio</div>
-                </div>
+            <div class="form-group">
+                <label for="codigo1">👥 Código Socio 1</label>
+                <input type="text" id="codigo1" placeholder="4415" required>
+            </div>
 
-                <div class="form-group">
-                    <label for="password">🔒 Contraseña</label>
-                    <input type="password" id="password" placeholder="Tu contraseña" required>
-                </div>
+            <div class="form-group">
+                <label for="codigo2">👥 Código Socio 2</label>
+                <input type="text" id="codigo2" placeholder="4443" required>
+            </div>
 
-                <div class="form-group">
-                    <label for="whatsapp">📱 Tu WhatsApp</label>
-                    <input type="text" id="whatsapp" placeholder="+573001234567" required>
-                    <div class="hint">Formato: +57 seguido de tu número (10 dígitos)</div>
-                </div>
-
-                <div class="section-title">👥 Códigos de Socios Adicionales (2 jugadores)</div>
-
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="codigo1">👤 Código Socio 1</label>
-                        <input type="text" id="codigo1" placeholder="4114" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="codigo2">👤 Código Socio 2</label>
-                        <input type="text" id="codigo2" placeholder="4144" required>
-                    </div>
-                </div>
-
-                <button type="submit" id="submitBtn">
-                    🚀 Iniciar Bot en Modo Turbo Ultra-Rápido
+            <div class="button-container">
+                <button type="submit" id="submitBtn" class="btn-primary">
+                    🚀 Iniciar Bot
                 </button>
-            </form>
+                <button type="button" id="stopBtn" class="btn-danger" disabled>
+                    🛑 Detener Bot
+                </button>
+            </div>
+        </form>
+
+        <div class="status-bar" id="statusBar">
+            <span class="status-indicator status-idle"></span>
+            <span id="statusText">INACTIVO</span>
         </div>
 
-        <div class="card logs-container" id="logsContainer">
+        <div class="logs-container" id="logsContainer">
             <div class="logs-header">
-                <div>
-                    <span>📊 Logs del Bot en Tiempo Real</span>
-                    <span class="status-badge status-running" id="statusBadge">● CORRIENDO</span>
-                </div>
+                <span class="logs-title">📋 Logs en Tiempo Real</span>
                 <button class="clear-btn" onclick="clearLogs()">Limpiar</button>
             </div>
-            <div class="logs-box" id="logsBox">
-                <div class="log-line log-info">Esperando inicio del bot...</div>
-            </div>
+            <div class="logs-box" id="logsBox"></div>
+        </div>
+
+        <div class="footer">
+            Bot Tee Time v2.0 | Diseñado para velocidad máxima ⚡
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-        const form = document.getElementById('configForm');
+        const socket = io();
+        const form = document.getElementById('botForm');
         const submitBtn = document.getElementById('submitBtn');
+        const stopBtn = document.getElementById('stopBtn');
         const logsContainer = document.getElementById('logsContainer');
         const logsBox = document.getElementById('logsBox');
-        const statusBadge = document.getElementById('statusBadge');
-
-        // Socket.io connection
-        const socket = io();
+        const statusBar = document.getElementById('statusBar');
+        const statusText = document.getElementById('statusText');
 
         // Cargar datos guardados
         window.addEventListener('load', function() {
@@ -337,49 +338,64 @@
             }
         });
 
-        // Escuchar logs del bot
-        socket.on('bot-log', function(data) {
-            addLog(data.message, data.type);
-        });
-
-        socket.on('bot-status', function(data) {
-            updateStatus(data.status);
-        });
-
+        // Función para agregar log
         function addLog(message, type = 'info') {
-            const line = document.createElement('div');
-            line.className = `log-line log-${type}`;
-            
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
             const timestamp = new Date().toLocaleTimeString('es-CO');
-            line.textContent = `[${timestamp}] ${message}`;
-            
-            logsBox.appendChild(line);
+            entry.textContent = `[${timestamp}] ${message}`;
+            logsBox.appendChild(entry);
             logsBox.scrollTop = logsBox.scrollHeight;
         }
 
+        // Función para limpiar logs
+        function clearLogs() {
+            logsBox.innerHTML = '';
+        }
+
+        // Función para actualizar estado
         function updateStatus(status) {
-            statusBadge.className = 'status-badge';
+            const indicator = statusBar.querySelector('.status-indicator');
+            indicator.className = 'status-indicator';
             
             switch(status) {
                 case 'running':
-                    statusBadge.className += ' status-running';
-                    statusBadge.textContent = '● CORRIENDO';
+                    indicator.classList.add('status-running');
+                    statusText.textContent = '● EJECUTANDO';
                     break;
                 case 'waiting':
-                    statusBadge.className += ' status-waiting';
-                    statusBadge.textContent = '⏳ ESPERANDO';
+                    indicator.classList.add('status-waiting');
+                    statusText.textContent = '⏳ ESPERANDO';
+                    break;
+                case 'completed':
+                    indicator.classList.add('status-completed');
+                    statusText.textContent = '✅ COMPLETADO';
                     break;
                 case 'error':
-                    statusBadge.className += ' status-error';
-                    statusBadge.textContent = '❌ ERROR';
+                    indicator.classList.add('status-error');
+                    statusText.textContent = '❌ ERROR';
                     break;
+                case 'stopped':
+                    indicator.classList.add('status-idle');
+                    statusText.textContent = '🛑 DETENIDO';
+                    break;
+                default:
+                    indicator.classList.add('status-idle');
+                    statusText.textContent = 'INACTIVO';
             }
         }
 
-        function clearLogs() {
-            logsBox.innerHTML = '<div class="log-line log-info">Logs limpiados...</div>';
-        }
+        // Socket.io - Recibir logs
+        socket.on('bot-log', (data) => {
+            addLog(data.message, data.type);
+        });
 
+        // Socket.io - Recibir estado
+        socket.on('bot-status', (data) => {
+            updateStatus(data.status);
+        });
+
+        // Enviar formulario
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -401,9 +417,9 @@
             }));
 
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="loader"></span> Iniciando bot ultra-rápido...';
+            submitBtn.innerHTML = '<span class="loader"></span> Iniciando bot...';
+            stopBtn.disabled = false;
             
-            // Mostrar logs
             logsContainer.classList.add('show');
             logsBox.innerHTML = '';
             addLog('Enviando configuración al servidor...', 'info');
@@ -436,13 +452,64 @@
                     addLog(`❌ Error: ${result.error}`, 'error');
                     updateStatus('error');
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '🚀 Iniciar Bot en Modo Turbo Ultra-Rápido';
+                    submitBtn.innerHTML = '🚀 Iniciar Bot';
+                    stopBtn.disabled = true;
                 }
             } catch (error) {
                 addLog(`❌ Error de conexión: ${error.message}`, 'error');
                 updateStatus('error');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '🚀 Iniciar Bot en Modo Turbo Ultra-Rápido';
+                submitBtn.innerHTML = '🚀 Iniciar Bot';
+                stopBtn.disabled = true;
+            }
+        });
+
+        // ✅ BOTÓN DETENER BOT
+        stopBtn.addEventListener('click', async function() {
+            if (!confirm('¿Estás seguro de que deseas detener el bot?')) {
+                return;
+            }
+
+            stopBtn.disabled = true;
+            stopBtn.innerHTML = '<span class="loader"></span> Deteniendo...';
+
+            try {
+                const response = await fetch('/stop-bot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    addLog('🛑 Bot detenido por el usuario', 'warning');
+                    updateStatus('stopped');
+                    
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🚀 Iniciar Bot';
+                    stopBtn.disabled = true;
+                    stopBtn.innerHTML = '🛑 Detener Bot';
+                } else {
+                    addLog('⚠️ No hay bot ejecutándose', 'warning');
+                    stopBtn.disabled = true;
+                    stopBtn.innerHTML = '🛑 Detener Bot';
+                }
+            } catch (error) {
+                addLog(`❌ Error al detener: ${error.message}`, 'error');
+                stopBtn.disabled = false;
+                stopBtn.innerHTML = '🛑 Detener Bot';
+            }
+        });
+
+        // Detectar cuando el bot termina automáticamente
+        socket.on('bot-status', (data) => {
+            if (data.status === 'completed' || data.status === 'error' || data.status === 'stopped') {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Iniciar Bot';
+                stopBtn.disabled = true;
+                stopBtn.innerHTML = '🛑 Detener Bot';
             }
         });
     </script>

@@ -1,4 +1,4 @@
-// server.js - VERSIÓN COMPLETA CON DEBUG EXTREMO
+// server.js - VERSIÓN COMPLETA CON STOP BOT
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -50,6 +50,11 @@ app.post('/start-bot', (req, res) => {
 
   if (!codigo1 || !codigo2) {
     return res.status(400).json({ error: 'Los 2 códigos de socios son requeridos' });
+  }
+
+  // ✅ VALIDAR QUE NO HAYA OTRO BOT CORRIENDO
+  if (botProcess) {
+    return res.status(400).json({ error: 'Ya hay un bot ejecutándose. Deténlo primero.' });
   }
 
   let formattedWhatsapp = whatsapp.trim();
@@ -116,7 +121,7 @@ app.post('/start-bot', (req, res) => {
         let type = 'info';
         if (line.includes('✅') || line.includes('✔️')) type = 'success';
         else if (line.includes('❌') || line.includes('ERROR')) type = 'error';
-        else if (line.includes('⚠️')) type = 'warning';
+        else if (line.includes('⚠️') || line.includes('WARNING')) type = 'warning';
         else if (line.includes('📤') || line.includes('WhatsApp')) type = 'success';
         
         sendLog(line, type);
@@ -142,10 +147,14 @@ app.post('/start-bot', (req, res) => {
       if (code === 0) {
         sendLog('✅ Bot finalizado correctamente', 'success');
         sendStatus('completed');
+      } else if (signal === 'SIGTERM') {
+        sendLog('🛑 Bot detenido por el usuario', 'warning');
+        sendStatus('stopped');
       } else {
         sendLog(`❌ Bot finalizado con código: ${code}`, 'error');
         sendStatus('error');
       }
+      
       botProcess = null;
     });
 
@@ -156,6 +165,7 @@ app.post('/start-bot', (req, res) => {
       console.error('   Stack:', error.stack);
       sendLog(`❌ Error: ${error.message}`, 'error');
       sendStatus('error');
+      botProcess = null;
     });
 
     setTimeout(() => {
@@ -176,20 +186,67 @@ app.post('/start-bot', (req, res) => {
     console.error('   Stack:', error.stack);
     sendLog(`❌ Error: ${error.message}`, 'error');
     sendStatus('error');
+    botProcess = null;
     res.status(500).json({ error: error.message });
   }
 });
 
+// ✅ ENDPOINT PARA DETENER EL BOT
 app.post('/stop-bot', (req, res) => {
+  console.log('\n🛑 Solicitud para detener el bot recibida');
+  
   if (botProcess) {
-    botProcess.kill();
-    botProcess = null;
-    sendLog('🛑 Bot detenido', 'warning');
-    sendStatus('stopped');
-    res.json({ success: true, message: 'Bot detenido' });
+    console.log('   PID del proceso:', botProcess.pid);
+    console.log('   Enviando señal SIGTERM...');
+    
+    try {
+      // Enviar señal para terminar el proceso
+      botProcess.kill('SIGTERM');
+      
+      // Timeout de seguridad: si no termina en 5 segundos, forzar cierre
+      setTimeout(() => {
+        if (botProcess) {
+          console.log('   ⚠️  Proceso no terminó, forzando cierre con SIGKILL');
+          botProcess.kill('SIGKILL');
+          botProcess = null;
+        }
+      }, 5000);
+      
+      sendLog('🛑 Bot detenido manualmente', 'warning');
+      sendStatus('stopped');
+      
+      console.log('   ✅ Señal enviada correctamente\n');
+      
+      res.json({ 
+        success: true, 
+        message: 'Bot detenido correctamente' 
+      });
+      
+    } catch (error) {
+      console.error('   ❌ Error al detener:', error);
+      botProcess = null;
+      
+      res.json({ 
+        success: true, 
+        message: 'Proceso finalizado (con error pero limpiado)' 
+      });
+    }
   } else {
-    res.json({ success: false, message: 'No hay bot ejecutándose' });
+    console.log('   ℹ️  No hay bot ejecutándose\n');
+    
+    res.json({ 
+      success: false, 
+      message: 'No hay bot ejecutándose' 
+    });
   }
+});
+
+// ✅ ENDPOINT PARA VERIFICAR ESTADO
+app.get('/bot-status', (req, res) => {
+  res.json({
+    running: botProcess !== null,
+    pid: botProcess ? botProcess.pid : null
+  });
 });
 
 httpServer.listen(PORT, () => {
@@ -198,5 +255,9 @@ httpServer.listen(PORT, () => {
   console.log('╚════════════════════════════════════════════╝');
   console.log(`\n✅ Servidor: http://localhost:${PORT}`);
   console.log(`✅ Socket.io activo`);
+  console.log(`\n🔧 Endpoints disponibles:`);
+  console.log(`   POST /start-bot  - Iniciar bot`);
+  console.log(`   POST /stop-bot   - Detener bot`);
+  console.log(`   GET  /bot-status - Estado del bot`);
   console.log(`\n🔧 Listo para recibir comandos\n`);
 });

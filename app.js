@@ -1,4 +1,4 @@
-// app.js - VERSIÓN COMPLETA OPTIMIZADA PARA PRODUCCIÓN
+// app.js - VERSIÓN FINAL CON MEJOR MANEJO DE ERRORES
 import 'dotenv/config';
 import puppeteer from 'puppeteer';
 import Twilio from 'twilio';
@@ -79,12 +79,23 @@ async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
   }
 }
 
+function getTomorrowDate() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const day = tomorrow.getDate();
+  const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const month = monthNames[tomorrow.getMonth()];
+  const year = tomorrow.getFullYear();
+  return { day, month, year, fullDate: `${day} de ${month} de ${year}` };
+}
+
 async function startSpeedTest() {
   console.log('╔════════════════════════════════════════════╗');
   console.log('║   🏌️‍♂️  BOT TEE TIME - ULTRA-RÁPIDO 🏌️‍♂️    ║');
   console.log('╚════════════════════════════════════════════╝\n');
   
   const isProduction = process.env.NODE_ENV === 'production';
+  const tomorrow = getTomorrowDate();
   
   console.log('⚡ Configuración:');
   console.log(`   - Usuario: ${USER_CLUB}`);
@@ -93,19 +104,19 @@ async function startSpeedTest() {
   console.log(`   - Entorno: ${isProduction ? 'PRODUCCIÓN' : 'DESARROLLO'}`);
   console.log(`   - Headless: ${isProduction ? 'SÍ' : 'NO'}`);
   console.log(`   - Polling: ${TURBO_CONFIG.POLL_INTERVAL_MS}ms`);
-  console.log(`   - Horario mínimo: 6:10 AM\n`);
+  console.log(`   - Horario mínimo: 6:10 AM`);
+  console.log(`   - Día objetivo: ${tomorrow.fullDate}\n`);
 
-  // ✅ MENSAJE 1: INICIO
   await sendWhats(
     `🏌️‍♂️ BOT TEE TIME INICIADO\n\n` +
     `👤 Usuario: ${USER_CLUB}\n` +
     `👥 Socios: ${CODIGOS_SOCIOS.join(', ')}\n` +
-    `⏰ Horario mínimo: 6:10 AM\n\n` +
+    `⏰ Horario mínimo: 6:10 AM\n` +
+    `📅 Día objetivo: ${tomorrow.fullDate}\n\n` +
     `🤖 Esperando hasta las 2:00 PM...\n\n` +
     `Recibirás otro mensaje cuando se complete la reserva.`
   );
 
-  // ✅ CONFIGURACIÓN PUPPETEER OPTIMIZADA
   console.log('🌐 Iniciando navegador...');
   
   const browser = await puppeteer.launch({
@@ -222,38 +233,72 @@ async function startSpeedTest() {
     await frame.waitForFunction(() => {
       const table = document.querySelector('table.mitabla');
       const rows = table?.querySelectorAll('tbody tr.mitabla');
-      const secondRow = rows ? rows[1] : null;
-      return secondRow?.querySelector('a[onclick*="teeTimeFecha"]') !== null;
+      return rows && rows.length > 0;
     }, { timeout: 90000 });
     
     console.log('✔️ Tabla OK\n');
 
-    console.log('📆 Seleccionando día de mañana...');
+    console.log(`📆 Buscando día: ${tomorrow.fullDate}...`);
     
-    const secondDayInfo = await frame.evaluate(() => {
+    const dayInfo = await frame.evaluate((targetDay) => {
       const table = document.querySelector('table.mitabla');
       const rows = table.querySelectorAll('tbody tr.mitabla');
-      const secondRow = rows[1];
       
-      const firstCell = secondRow.querySelector('td');
-      const dayText = firstCell ? firstCell.textContent.trim() : 'Desconocido';
-      const link = secondRow.querySelector('a[onclick*="teeTimeFecha"]');
-      const onclick = link ? link.getAttribute('onclick') : null;
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const firstCell = row.querySelector('td');
+        const dayText = firstCell ? firstCell.textContent.trim() : '';
+        
+        if (dayText.includes(targetDay.toString())) {
+          const link = row.querySelector('a[onclick*="teeTimeFecha"]');
+          const onclick = link ? link.getAttribute('onclick') : null;
+          
+          return {
+            found: true,
+            dayText: dayText,
+            onclick: onclick,
+            rowIndex: i
+          };
+        }
+      }
       
-      return { dayText, onclick };
-    });
+      return {
+        found: false,
+        availableDays: Array.from(rows).map(r => r.querySelector('td')?.textContent.trim()).filter(Boolean),
+        totalRows: rows.length
+      };
+    }, tomorrow.day);
 
-    if (!secondDayInfo?.onclick) throw new Error('Onclick del día no encontrado');
+    if (!dayInfo.found) {
+      console.log('⚠️  DÍA NO DISPONIBLE');
+      console.log(`   Buscado: ${tomorrow.fullDate}`);
+      console.log(`   Días disponibles en tabla: ${dayInfo.totalRows}`);
+      if (dayInfo.availableDays.length > 0) {
+        console.log(`   Días encontrados:`);
+        dayInfo.availableDays.forEach((day, i) => {
+          console.log(`      ${i + 1}. ${day}`);
+        });
+      }
+      console.log('');
+      
+      await sendWhats(
+        `⚠️ DÍA NO DISPONIBLE\n\n` +
+        `El día ${tomorrow.fullDate} aún no está disponible en el sistema.\n\n` +
+        `Por favor, intenta más tarde o verifica manualmente en el club.`
+      );
+      
+      await browser.close();
+      console.log('✅ Navegador cerrado');
+      return;
+    }
 
-    console.log('📅 Día:', secondDayInfo.dayText);
+    console.log(`✅ Día encontrado: ${dayInfo.dayText}`);
     
     await frame.evaluate(oc => {
       try { eval(oc); } catch(e) {
-        const table = document.querySelector('table.mitabla');
-        const secondRow = table.querySelectorAll('tbody tr.mitabla')[1];
-        secondRow?.querySelector('a[onclick*="teeTimeFecha"]')?.click();
+        console.error('Error ejecutando onclick:', e);
       }
-    }, secondDayInfo.onclick);
+    }, dayInfo.onclick);
 
     console.log('✔️ Click ejecutado');
     await sleep(10000);
@@ -373,7 +418,7 @@ async function startSpeedTest() {
             console.log('\n🎉 ¡HORARIO CAPTURADO!');
             console.log(`⚡ Tiempo: ${totalTime}s`);
             console.log(`📊 Polls: ${pollCount}`);
-            console.log(`📅 Día: ${secondDayInfo.dayText}`);
+            console.log(`📅 Día: ${dayInfo.dayText}`);
             console.log(`⏰ Horario: ${target.text}\n`);
             
             break;
@@ -390,14 +435,13 @@ async function startSpeedTest() {
     }
 
     if (!clicked) {
-      console.log('\n❌ No se capturó horario');
+      console.log('\n⚠️  No se capturó horario');
       await sendWhats(
-        `❌ BOT TEE TIME - SIN HORARIO\n\n` +
-        `No se encontró ningún horario disponible >= 6:10 AM.\n\n` +
+        `⚠️ SIN HORARIO DISPONIBLE\n\n` +
+        `No se encontró ningún horario >= 6:10 AM.\n\n` +
         `Verifica manualmente en el club.`
       );
       
-      // ✅ Cerrar navegador
       await browser.close();
       console.log('✅ Navegador cerrado');
       return;
@@ -573,13 +617,12 @@ async function startSpeedTest() {
     
     console.log('🎉 ¡RESERVA COMPLETADA!');
     console.log(`⚡ Tiempo total: ${totalTime}s`);
-    console.log(`📅 ${secondDayInfo.dayText}`);
+    console.log(`📅 ${dayInfo.dayText}`);
     console.log(`⏰ ${selectedTime}\n`);
     
-    // ✅ MENSAJE 2: ÉXITO
     await sendWhats(
       `✅ ¡RESERVA COMPLETADA! 🏌️‍♂️\n\n` +
-      `📅 Día: ${secondDayInfo.dayText}\n` +
+      `📅 Día: ${dayInfo.dayText}\n` +
       `⏰ Horario: ${selectedTime}\n\n` +
       `👥 Jugadores:\n` +
       `   • ${USER_CLUB} (tú)\n` +
@@ -594,7 +637,6 @@ async function startSpeedTest() {
 
     console.log('✅ Proceso completado');
     
-    // ✅ CERRAR NAVEGADOR
     await browser.close();
     console.log('✅ Navegador cerrado\n');
 
@@ -602,14 +644,12 @@ async function startSpeedTest() {
     console.error('\n❌ ERROR:', err.message);
     console.error('Stack:', err.stack);
     
-    // ✅ MENSAJE 3: ERROR
     await sendWhats(
       `❌ BOT TEE TIME - ERROR\n\n` +
       `Error: ${err.message}\n\n` +
       `Verifica manualmente o revisa los logs del servidor.`
     );
     
-    // ✅ CERRAR NAVEGADOR EN CASO DE ERROR
     try {
       await browser.close();
       console.log('✅ Navegador cerrado después de error');
