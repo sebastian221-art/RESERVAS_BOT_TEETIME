@@ -1,12 +1,12 @@
 # Usa la imagen oficial de Puppeteer como base
-FROM ghcr.io/puppeteer/puppeteer:21.0.0
+FROM ghcr.io/puppeteer/puppeteer:21.6.1
 
 # Variables de entorno para optimización y seguridad
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable \
     NODE_ENV=production \
-    PORT=3000 \
-    NODE_OPTIONS=--max_old_space_size=256 \
+    PORT=10000 \
+    NODE_OPTIONS=--max_old_space_size=512 \
     DEBIAN_FRONTEND=noninteractive
 
 # Cambia al usuario root para instalaciones
@@ -15,7 +15,7 @@ USER root
 # Establece el directorio de trabajo
 WORKDIR /usr/src/app
 
-# Instala dependencias del sistema con método alternativo
+# Instala dependencias del sistema
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         wget \
@@ -61,14 +61,14 @@ RUN apt-get update \
 # Copia archivos de dependencias
 COPY package*.json ./
 
-# Instala dependencias de Node.js de forma ligera
+# Instala dependencias de Node.js
 RUN npm ci --only=production --no-audit --no-fund --silent \
     && npm cache clean --force
 
-# Copia el resto del código de la aplicación
+# Copia el resto del código
 COPY . .
 
-# Ajustes de rendimiento para Render
+# Ajustes de rendimiento
 RUN npm prune --production
 
 # Configura permisos
@@ -77,8 +77,8 @@ RUN chown -R pptruser:pptruser /usr/src/app
 # Cambia al usuario de Puppeteer
 USER pptruser
 
-# Expone el puerto del servidor
-EXPOSE 3000
+# Expone el puerto
+EXPOSE 10000
 
-# Comando de inicio para el servidor (ajustado a app.js según package.json)
-CMD ["node", "--max_old_space_size=256", "app.js"]
+# ✅ EJECUTAR SERVER.JS (NO APP.JS)
+CMD ["node", "--max_old_space_size=512", "server.js"]

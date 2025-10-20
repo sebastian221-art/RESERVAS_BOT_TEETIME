@@ -1,27 +1,21 @@
 {
-  "name": "clubcampestre-teetime-bot",
+  "name": "bot-teetime",
   "version": "1.0.0",
-  "description": "Bot automatizado para reservar Tee Time en Club Campestre Bucaramanga",
   "type": "module",
-  "main": "app.js",
+  "description": "Bot automatizado para reservar Tee Time",
+  "main": "server.js",
   "scripts": {
-    "start": "node app.js",
-    "server": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
-  "keywords": [
-    "puppeteer",
-    "bot",
-    "automation",
-    "teetime",
-    "twilio"
-  ],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.3.1",
-    "express": "^5.1.0",
-    "puppeteer": "^21.0.0",
-    "socket.io": "^4.8.1",
-    "twilio": "^4.19.0"
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "puppeteer": "^21.6.1",
+    "twilio": "^4.19.0",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

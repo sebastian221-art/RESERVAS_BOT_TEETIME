@@ -1,4 +1,4 @@
-// app.js - INICIO CON DEBUG
+// app.js - VERSIÓN COMPLETA OPTIMIZADA PARA PRODUCCIÓN
 import 'dotenv/config';
 import puppeteer from 'puppeteer';
 import Twilio from 'twilio';
@@ -11,38 +11,12 @@ const CODIGO_SOCIO_2 = process.argv[6] || process.env.CODIGO_SOCIO_2;
 
 const { TWILIO_SID, AUTH_TOKEN, TWILIO_WHATSAPP } = process.env;
 
-// ✅ DEBUG: Ver qué está recibiendo
-console.log('\n🔍 DEBUG - ARGUMENTOS RECIBIDOS:');
-console.log('   process.argv[2] (USER_CLUB):', process.argv[2]);
-console.log('   process.argv[3] (PASS_CLUB):', process.argv[3] ? '***' : 'undefined');
-console.log('   process.argv[4] (TARGET_WHATSAPP):', process.argv[4]);
-console.log('   process.argv[5] (CODIGO_SOCIO_1):', process.argv[5]);
-console.log('   process.argv[6] (CODIGO_SOCIO_2):', process.argv[6]);
-
-console.log('\n🔍 DEBUG - CREDENCIALES TWILIO:');
-console.log('   TWILIO_SID:', TWILIO_SID);
-console.log('   AUTH_TOKEN:', AUTH_TOKEN ? '***' + AUTH_TOKEN.slice(-4) : 'undefined');
-console.log('   TWILIO_WHATSAPP:', TWILIO_WHATSAPP);
-console.log('   TARGET_WHATSAPP (final):', TARGET_WHATSAPP);
-console.log('');
-
 if (!USER_CLUB || !PASS_CLUB || !TWILIO_SID || !AUTH_TOKEN || !TWILIO_WHATSAPP || !TARGET_WHATSAPP || !CODIGO_SOCIO_1 || !CODIGO_SOCIO_2) {
-  console.error('❌ FALTAN CREDENCIALES:');
-  console.error('   USER_CLUB:', !!USER_CLUB);
-  console.error('   PASS_CLUB:', !!PASS_CLUB);
-  console.error('   TWILIO_SID:', !!TWILIO_SID);
-  console.error('   AUTH_TOKEN:', !!AUTH_TOKEN);
-  console.error('   TWILIO_WHATSAPP:', !!TWILIO_WHATSAPP);
-  console.error('   TARGET_WHATSAPP:', !!TARGET_WHATSAPP);
-  console.error('   CODIGO_SOCIO_1:', !!CODIGO_SOCIO_1);
-  console.error('   CODIGO_SOCIO_2:', !!CODIGO_SOCIO_2);
   throw new Error('❌ Faltan credenciales');
 }
 
 const twClient = Twilio(TWILIO_SID, AUTH_TOKEN);
 const CODIGOS_SOCIOS = [CODIGO_SOCIO_1, CODIGO_SOCIO_2];
-
-// ... resto del código
 
 const TURBO_CONFIG = {
   POLL_INTERVAL_MS: 100,
@@ -110,14 +84,18 @@ async function startSpeedTest() {
   console.log('║   🏌️‍♂️  BOT TEE TIME - ULTRA-RÁPIDO 🏌️‍♂️    ║');
   console.log('╚════════════════════════════════════════════╝\n');
   
+  const isProduction = process.env.NODE_ENV === 'production';
+  
   console.log('⚡ Configuración:');
   console.log(`   - Usuario: ${USER_CLUB}`);
   console.log(`   - Socios: ${CODIGOS_SOCIOS.join(', ')}`);
   console.log(`   - WhatsApp: ${TARGET_WHATSAPP}`);
+  console.log(`   - Entorno: ${isProduction ? 'PRODUCCIÓN' : 'DESARROLLO'}`);
+  console.log(`   - Headless: ${isProduction ? 'SÍ' : 'NO'}`);
   console.log(`   - Polling: ${TURBO_CONFIG.POLL_INTERVAL_MS}ms`);
   console.log(`   - Horario mínimo: 6:10 AM\n`);
 
-  // MENSAJE 1: INICIO
+  // ✅ MENSAJE 1: INICIO
   await sendWhats(
     `🏌️‍♂️ BOT TEE TIME INICIADO\n\n` +
     `👤 Usuario: ${USER_CLUB}\n` +
@@ -127,20 +105,30 @@ async function startSpeedTest() {
     `Recibirás otro mensaje cuando se complete la reserva.`
   );
 
+  // ✅ CONFIGURACIÓN PUPPETEER OPTIMIZADA
+  console.log('🌐 Iniciando navegador...');
+  
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: isProduction ? true : false,
     defaultViewport: null,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--disable-software-rasterizer",
+      "--disable-extensions",
       "--start-maximized",
       "--disable-blink-features=AutomationControlled"
     ],
-    executablePath: process.platform === "linux"
-      ? "/usr/bin/google-chrome-stable"
-      : puppeteer.executablePath(),
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 
+                    (process.platform === "linux"
+                      ? "/usr/bin/google-chrome-stable"
+                      : puppeteer.executablePath()),
     timeout: 0
   });
+
+  console.log('✅ Navegador iniciado\n');
 
   const page = await browser.newPage();
   page.setDefaultTimeout(90000);
@@ -152,7 +140,7 @@ async function startSpeedTest() {
   try {
     const startTime = Date.now();
     
-    console.log('🌐 Iniciando sesión...');
+    console.log('🔐 Iniciando sesión...');
     await page.goto('https://clubcampestrebucaramanga.com/empresa/login', {
       waitUntil: 'networkidle2'
     });
@@ -408,6 +396,10 @@ async function startSpeedTest() {
         `No se encontró ningún horario disponible >= 6:10 AM.\n\n` +
         `Verifica manualmente en el club.`
       );
+      
+      // ✅ Cerrar navegador
+      await browser.close();
+      console.log('✅ Navegador cerrado');
       return;
     }
 
@@ -584,7 +576,7 @@ async function startSpeedTest() {
     console.log(`📅 ${secondDayInfo.dayText}`);
     console.log(`⏰ ${selectedTime}\n`);
     
-    // MENSAJE 2: ÉXITO
+    // ✅ MENSAJE 2: ÉXITO
     await sendWhats(
       `✅ ¡RESERVA COMPLETADA! 🏌️‍♂️\n\n` +
       `📅 Día: ${secondDayInfo.dayText}\n` +
@@ -600,17 +592,30 @@ async function startSpeedTest() {
       `✅ Todo listo para jugar!`
     );
 
-    console.log('✅ Navegador abierto\n');
+    console.log('✅ Proceso completado');
+    
+    // ✅ CERRAR NAVEGADOR
+    await browser.close();
+    console.log('✅ Navegador cerrado\n');
 
   } catch (err) {
     console.error('\n❌ ERROR:', err.message);
+    console.error('Stack:', err.stack);
     
-    // MENSAJE 3: ERROR
+    // ✅ MENSAJE 3: ERROR
     await sendWhats(
       `❌ BOT TEE TIME - ERROR\n\n` +
       `Error: ${err.message}\n\n` +
       `Verifica manualmente o revisa los logs del servidor.`
     );
+    
+    // ✅ CERRAR NAVEGADOR EN CASO DE ERROR
+    try {
+      await browser.close();
+      console.log('✅ Navegador cerrado después de error');
+    } catch (e) {
+      console.error('Error cerrando navegador:', e.message);
+    }
   }
 }
 
