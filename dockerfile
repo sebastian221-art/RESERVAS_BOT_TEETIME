@@ -5,17 +5,24 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     NODE_ENV=production \
     PORT=10000
 
+USER root
+
 WORKDIR /usr/src/app
+
 
 COPY package*.json ./
 
-# Usar npm install en lugar de npm ci
+
 RUN npm install --production && npm cache clean --force
 
 COPY . .
 
-EXPOSE 10000
+
+RUN chown -R pptruser:pptruser /usr/src/app
+
 
 USER pptruser
+
+EXPOSE 10000
 
 CMD ["node", "server.js"]
