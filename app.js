@@ -62,20 +62,36 @@ async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
   const now = new Date();
   const target = new Date();
   
+  // ✅ Configurar hora objetivo para HOY
   target.setHours(targetHour, targetMinute, 0 - secondsBefore, 0);
-  
-  if (now > target) {
-    target.setDate(target.getDate() + 1);
-  }
   
   const waitMs = target - now;
   
-  if (waitMs > 0) {
+  // ✅ Si el tiempo de espera es negativo, ya pasó la hora de hoy
+  if (waitMs <= 0) {
+    console.log('⚡ Ya pasó la hora objetivo de hoy (2:00 PM)');
+    console.log('   El bot debió ejecutarse antes de las 2 PM');
+    console.log('   Si quieres reservar para mañana, ejecuta el bot mañana antes de las 2 PM\n');
+    
+    // Ir al siguiente día
+    target.setDate(target.getDate() + 1);
+    const newWaitMs = target - now;
+    
+    const hours = Math.floor(newWaitMs / 3600000);
+    const minutes = Math.floor((newWaitMs % 3600000) / 60000);
+    const seconds = Math.floor((newWaitMs % 60000) / 1000);
+    
+    console.log(`⏰ Esperando hasta MAÑANA ${target.toLocaleTimeString('es-CO')}`);
+    console.log(`   (Faltan ${hours} horas ${minutes} min ${seconds} seg)\n`);
+    
+    await sleep(newWaitMs);
+  } else {
+    // ✅ Aún no son las 2 PM de hoy, esperar normalmente
     const hours = Math.floor(waitMs / 3600000);
     const minutes = Math.floor((waitMs % 3600000) / 60000);
     const seconds = Math.floor((waitMs % 60000) / 1000);
     
-    console.log(`⏰ Esperando hasta ${target.toLocaleTimeString('es-CO')}`);
+    console.log(`⏰ Esperando hasta HOY ${target.toLocaleTimeString('es-CO')}`);
     
     if (hours > 0) {
       console.log(`   (Faltan ${hours} horas ${minutes} min ${seconds} seg)\n`);
@@ -84,8 +100,6 @@ async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
     }
     
     await sleep(waitMs);
-  } else {
-    console.log('⚡ Ya pasó la hora objetivo, ejecutando inmediatamente...\n');
   }
 }
 
