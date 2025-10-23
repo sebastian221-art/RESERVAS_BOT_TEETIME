@@ -75,7 +75,9 @@ async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
 }
 
 function getTomorrowDate() {
-  const tomorrow = new Date();
+  const now = new Date();
+  const nowColombia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+  const tomorrow = new Date(nowColombia);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const day = tomorrow.getDate();
   const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
