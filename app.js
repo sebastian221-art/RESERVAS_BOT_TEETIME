@@ -1,21 +1,16 @@
-// app.js - VERSIÓN FINAL CON CORRECCIONES
+// app.js - VERSIÓN SIN WHATSAPP/TWILIO
 import 'dotenv/config';
 import puppeteer from 'puppeteer';
-import Twilio from 'twilio';
 
 const USER_CLUB = process.argv[2] || process.env.USER_CLUB;
 const PASS_CLUB = process.argv[3] || process.env.PASS_CLUB;
-const TARGET_WHATSAPP = process.argv[4] || process.env.TARGET_WHATSAPP;
-const CODIGO_SOCIO_1 = process.argv[5] || process.env.CODIGO_SOCIO_1;
-const CODIGO_SOCIO_2 = process.argv[6] || process.env.CODIGO_SOCIO_2;
+const CODIGO_SOCIO_1 = process.argv[4] || process.env.CODIGO_SOCIO_1;
+const CODIGO_SOCIO_2 = process.argv[5] || process.env.CODIGO_SOCIO_2;
 
-const { TWILIO_SID, AUTH_TOKEN, TWILIO_WHATSAPP } = process.env;
-
-if (!USER_CLUB || !PASS_CLUB || !TWILIO_SID || !AUTH_TOKEN || !TWILIO_WHATSAPP || !TARGET_WHATSAPP || !CODIGO_SOCIO_1 || !CODIGO_SOCIO_2) {
+if (!USER_CLUB || !PASS_CLUB || !CODIGO_SOCIO_1 || !CODIGO_SOCIO_2) {
   throw new Error('❌ Faltan credenciales');
 }
 
-const twClient = Twilio(TWILIO_SID, AUTH_TOKEN);
 const CODIGOS_SOCIOS = [CODIGO_SOCIO_1, CODIGO_SOCIO_2];
 
 const TURBO_CONFIG = {
@@ -29,34 +24,10 @@ const TURBO_CONFIG = {
   MIN_MINUTE: 10
 };
 
-async function sendWhats(msg) {
-  try {
-    console.log('\n📤 Enviando WhatsApp...');
-    console.log(`   From: ${TWILIO_WHATSAPP}`);
-    console.log(`   To: ${TARGET_WHATSAPP}`);
-    
-    const message = await twClient.messages.create({
-      from: TWILIO_WHATSAPP,
-      to: TARGET_WHATSAPP,
-      body: msg
-    });
-
-    console.log('✅ WhatsApp enviado!');
-    console.log(`   SID: ${message.sid}`);
-    console.log(`   Status: ${message.status}\n`);
-    
-    return true;
-  } catch (error) {
-    console.error('\n❌ ERROR WhatsApp:');
-    console.error(`   Código: ${error.code}`);
-    console.error(`   Mensaje: ${error.message}\n`);
-    return false;
-  }
-}
-
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
 async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
   // ✅ FORZAR ZONA HORARIA DE COLOMBIA (America/Bogota = UTC-5)
   const now = new Date();
@@ -102,6 +73,7 @@ async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
     await sleep(waitMs);
   }
 }
+
 function getTomorrowDate() {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -123,22 +95,13 @@ async function startSpeedTest() {
   console.log('⚡ Configuración:');
   console.log(`   - Usuario: ${USER_CLUB}`);
   console.log(`   - Socios: ${CODIGOS_SOCIOS.join(', ')}`);
-  console.log(`   - WhatsApp: ${TARGET_WHATSAPP}`);
   console.log(`   - Entorno: ${isProduction ? 'PRODUCCIÓN' : 'DESARROLLO'}`);
   console.log(`   - Headless: ${isProduction ? 'SÍ' : 'NO'}`);
   console.log(`   - Polling: ${TURBO_CONFIG.POLL_INTERVAL_MS}ms`);
   console.log(`   - Horario mínimo: 6:10 AM`);
   console.log(`   - Día objetivo: ${tomorrow.fullDate}\n`);
 
-  await sendWhats(
-    `🏌️‍♂️ BOT TEE TIME INICIADO\n\n` +
-    `👤 Usuario: ${USER_CLUB}\n` +
-    `👥 Socios: ${CODIGOS_SOCIOS.join(', ')}\n` +
-    `⏰ Horario mínimo: 6:10 AM\n` +
-    `📅 Día objetivo: ${tomorrow.fullDate}\n\n` +
-    `🤖 Esperando hasta las 2:00 PM...\n\n` +
-    `Recibirás otro mensaje cuando se complete la reserva.`
-  );
+  console.log('🤖 Bot iniciado - Esperando hasta las 2:00 PM...\n');
 
   console.log('🌐 Iniciando navegador...');
   
@@ -304,12 +267,6 @@ async function startSpeedTest() {
       }
       console.log('');
       
-      await sendWhats(
-        `⚠️ DÍA NO DISPONIBLE\n\n` +
-        `El día ${tomorrow.fullDate} aún no está disponible en el sistema.\n\n` +
-        `Por favor, intenta más tarde o verifica manualmente en el club.`
-      );
-      
       await browser.close();
       console.log('✅ Navegador cerrado');
       return;
@@ -459,11 +416,7 @@ async function startSpeedTest() {
 
     if (!clicked) {
       console.log('\n⚠️  No se capturó horario');
-      await sendWhats(
-        `⚠️ SIN HORARIO DISPONIBLE\n\n` +
-        `No se encontró ningún horario >= 6:10 AM.\n\n` +
-        `Verifica manualmente en el club.`
-      );
+      console.log('No se encontró ningún horario >= 6:10 AM.');
       
       await browser.close();
       console.log('✅ Navegador cerrado');
@@ -638,40 +591,27 @@ async function startSpeedTest() {
     const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
     const captureTime = ((Date.now() - pollStart) / 1000).toFixed(3);
     
-    console.log('🎉 ¡RESERVA COMPLETADA!');
-    console.log(`⚡ Tiempo total: ${totalTime}s`);
-    console.log(`📅 ${dayInfo.dayText}`);
-    console.log(`⏰ ${selectedTime}\n`);
-    
-    await sendWhats(
-      `✅ ¡RESERVA COMPLETADA! 🏌️‍♂️\n\n` +
-      `📅 Día: ${dayInfo.dayText}\n` +
-      `⏰ Horario: ${selectedTime}\n\n` +
-      `👥 Jugadores:\n` +
-      `   • ${USER_CLUB} (tú)\n` +
-      `   • ${CODIGOS_SOCIOS[0]}\n` +
-      `   • ${CODIGOS_SOCIOS[1]}\n\n` +
-      `⚡ Velocidad: ${captureTime}s\n` +
-      `⏱️ Tiempo total: ${totalTime}s\n\n` +
-      `🚗 Sin carro\n` +
-      `💳 Cargo al Carnet\n\n` +
-      `✅ Todo listo para jugar!`
-    );
+    console.log('╔════════════════════════════════════════════╗');
+    console.log('║       🎉 ¡RESERVA COMPLETADA! 🎉          ║');
+    console.log('╚════════════════════════════════════════════╝\n');
+    console.log(`📅 Día: ${dayInfo.dayText}`);
+    console.log(`⏰ Horario: ${selectedTime}\n`);
+    console.log(`👥 Jugadores:`);
+    console.log(`   • ${USER_CLUB} (tú)`);
+    console.log(`   • ${CODIGOS_SOCIOS[0]}`);
+    console.log(`   • ${CODIGOS_SOCIOS[1]}\n`);
+    console.log(`⚡ Velocidad de captura: ${captureTime}s`);
+    console.log(`⏱️ Tiempo total: ${totalTime}s\n`);
+    console.log(`🚗 Sin carro`);
+    console.log(`💳 Cargo al Carnet\n`);
+    console.log('✅ ¡Todo listo para jugar!\n');
 
-    console.log('✅ Proceso completado');
-    
     await browser.close();
     console.log('✅ Navegador cerrado\n');
 
   } catch (err) {
     console.error('\n❌ ERROR:', err.message);
     console.error('Stack:', err.stack);
-    
-    await sendWhats(
-      `❌ BOT TEE TIME - ERROR\n\n` +
-      `Error: ${err.message}\n\n` +
-      `Verifica manualmente o revisa los logs del servidor.`
-    );
     
     try {
       await browser.close();

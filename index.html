@@ -273,12 +273,6 @@
             </div>
 
             <div class="form-group">
-                <label for="whatsapp">📱 Tu WhatsApp</label>
-                <input type="text" id="whatsapp" placeholder="+573001234567" required>
-                <div class="hint">Formato: +57 seguido de tu número (10 dígitos)</div>
-            </div>
-
-            <div class="form-group">
                 <label for="codigo1">👥 Código Socio 1</label>
                 <input type="text" id="codigo1" placeholder="4415" required>
             </div>
@@ -332,7 +326,6 @@
             if (saved) {
                 const data = JSON.parse(saved);
                 document.getElementById('usuario').value = data.usuario || '';
-                document.getElementById('whatsapp').value = data.whatsapp || '';
                 document.getElementById('codigo1').value = data.codigo1 || '';
                 document.getElementById('codigo2').value = data.codigo2 || '';
             }
@@ -401,17 +394,11 @@
             
             const usuario = document.getElementById('usuario').value;
             const password = document.getElementById('password').value;
-            let whatsapp = document.getElementById('whatsapp').value.trim();
             const codigo1 = document.getElementById('codigo1').value.trim();
             const codigo2 = document.getElementById('codigo2').value.trim();
 
-            if (!whatsapp.startsWith('+')) {
-                whatsapp = '+' + whatsapp;
-            }
-
             localStorage.setItem('botData', JSON.stringify({ 
-                usuario, 
-                whatsapp,
+                usuario,
                 codigo1,
                 codigo2
             }));
@@ -432,8 +419,7 @@
                     },
                     body: JSON.stringify({ 
                         usuario, 
-                        password, 
-                        whatsapp,
+                        password,
                         codigo1,
                         codigo2
                     })
@@ -444,7 +430,6 @@
                 if (response.ok) {
                     addLog('✅ Bot iniciado correctamente', 'success');
                     addLog(`Usuario: ${usuario}`, 'info');
-                    addLog(`WhatsApp: ${whatsapp}`, 'info');
                     addLog(`Códigos: ${codigo1}, ${codigo2}`, 'info');
                     addLog('Esperando logs del bot...', 'info');
                     updateStatus('running');

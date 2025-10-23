@@ -1,4 +1,4 @@
-// server.js - VERSIÓN COMPLETA CON STOP BOT
+// server.js - VERSIÓN SIN WHATSAPP/TWILIO
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -42,10 +42,10 @@ function sendStatus(status) {
 }
 
 app.post('/start-bot', (req, res) => {
-  const { usuario, password, whatsapp, codigo1, codigo2 } = req.body;
+  const { usuario, password, codigo1, codigo2 } = req.body;
 
-  if (!usuario || !password || !whatsapp) {
-    return res.status(400).json({ error: 'Usuario, contraseña y WhatsApp son requeridos' });
+  if (!usuario || !password) {
+    return res.status(400).json({ error: 'Usuario y contraseña son requeridos' });
   }
 
   if (!codigo1 || !codigo2) {
@@ -57,23 +57,11 @@ app.post('/start-bot', (req, res) => {
     return res.status(400).json({ error: 'Ya hay un bot ejecutándose. Deténlo primero.' });
   }
 
-  let formattedWhatsapp = whatsapp.trim();
-  
-  if (!formattedWhatsapp.startsWith('+')) {
-    formattedWhatsapp = '+' + formattedWhatsapp;
-  }
-  
-  if (!formattedWhatsapp.startsWith('whatsapp:')) {
-    formattedWhatsapp = 'whatsapp:' + formattedWhatsapp;
-  }
-
   console.log('\n' + '='.repeat(50));
   console.log('🚀 INICIANDO BOT');
   console.log('='.repeat(50));
   console.log('Usuario:', usuario);
   console.log('Password:', password ? '***' : 'NO DEFINIDO');
-  console.log('WhatsApp (original):', whatsapp);
-  console.log('WhatsApp (formateado):', formattedWhatsapp);
   console.log('Código 1:', codigo1);
   console.log('Código 2:', codigo2);
   console.log('CWD:', __dirname);
@@ -88,7 +76,6 @@ app.post('/start-bot', (req, res) => {
       'app.js',
       usuario,
       password,
-      formattedWhatsapp,
       codigo1,
       codigo2
     ];
@@ -122,7 +109,6 @@ app.post('/start-bot', (req, res) => {
         if (line.includes('✅') || line.includes('✔️')) type = 'success';
         else if (line.includes('❌') || line.includes('ERROR')) type = 'error';
         else if (line.includes('⚠️') || line.includes('WARNING')) type = 'warning';
-        else if (line.includes('📤') || line.includes('WhatsApp')) type = 'success';
         
         sendLog(line, type);
       });
