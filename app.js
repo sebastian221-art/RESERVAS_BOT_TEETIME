@@ -429,14 +429,14 @@ async function startSpeedTest() {
     await sleep(2000);
 
     console.log('👥 3 jugadores...');
-    await frame.waitForSelector('#jug3', { timeout: 10000 });
-    await frame.evaluate(() => {
-      const radio = document.querySelector('#jug3');
-      if (radio) {
-        radio.click();
-        radio.checked = true;
-      }
-    });
+await frame.waitForSelector('input[name="num-jugadores"]', { timeout: 20000 });
+await frame.evaluate(() => {
+  const radio3 = document.querySelector('input[name="num-jugadores"][value="3"]');
+  if (radio3) {
+    radio3.click();
+    radio3.checked = true;
+  }
+});
     console.log('✔️');
     await sleep(1500);
 
