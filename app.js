@@ -228,34 +228,52 @@ async function startSpeedTest() {
 
     console.log(`📆 Buscando día: ${tomorrow.fullDate}...`);
     
-    const dayInfo = await frame.evaluate((targetDay) => {
-      const table = document.querySelector('table.mitabla');
-      const rows = table.querySelectorAll('tbody tr.mitabla');
-      
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const firstCell = row.querySelector('td');
-        const dayText = firstCell ? firstCell.textContent.trim() : '';
-        
-        if (dayText.includes(targetDay.toString())) {
-          const link = row.querySelector('a[onclick*="teeTimeFecha"]');
-          const onclick = link ? link.getAttribute('onclick') : null;
-          
-          return {
-            found: true,
-            dayText: dayText,
-            onclick: onclick,
-            rowIndex: i
-          };
-        }
-      }
+    // Buscar el día correcto dentro del iframe
+
+
+const dayInfo = await frame.evaluate((targetFullDate) => {
+  const table = document.querySelector('table.mitabla');
+  if (!table) {
+    return { found: false, message: '❌ No se encontró la tabla de días' };
+  }
+
+  const rows = table.querySelectorAll('tbody tr.mitabla');
+  
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const firstCell = row.querySelector('td');
+    const dayText = firstCell ? firstCell.textContent.trim().toLowerCase() : '';
+    
+    // 🔹 Buscar coincidencia con la fecha completa (ej: "25 de octubre")
+    if (dayText.includes(targetFullDate.toLowerCase())) {
+      const link = row.querySelector('a[onclick*="teeTimeFecha"]');
+      const onclick = link ? link.getAttribute('onclick') : null;
       
       return {
-        found: false,
-        availableDays: Array.from(rows).map(r => r.querySelector('td')?.textContent.trim()).filter(Boolean),
-        totalRows: rows.length
+        found: true,
+        dayText: dayText,
+        onclick: onclick,
+        rowIndex: i
       };
-    }, tomorrow.day);
+    }
+  }
+
+  // 🔹 Si no se encuentra, devolver info útil para debug
+  return {
+    found: false,
+    availableDays: Array.from(rows)
+      .map(r => r.querySelector('td')?.textContent.trim())
+      .filter(Boolean),
+    totalRows: rows.length
+  };
+}, tomorrow.fullDate);
+
+if (!dayInfo.found) {
+  console.error('❌ Día no encontrado. Días disponibles:', dayInfo.availableDays);
+  throw new Error('No se encontró el día correcto en la tabla.');
+}
+
+
 
     if (!dayInfo.found) {
       console.log('⚠️  DÍA NO DISPONIBLE');
