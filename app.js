@@ -1,4 +1,4 @@
-// app.js - VERSIÓN SIN WHATSAPP/TWILIO
+// app.js - VERSIÓN SIN WHATSAPP/TWILIO - CON VERIFICACIÓN MEJORADA
 import 'dotenv/config';
 import puppeteer from 'puppeteer';
 
@@ -89,6 +89,7 @@ function getTomorrowDate() {
 async function startSpeedTest() {
   console.log('╔════════════════════════════════════════════╗');
   console.log('║   🏌️‍♂️  BOT TEE TIME - ULTRA-RÁPIDO 🏌️‍♂️    ║');
+  console.log('║     (CON VERIFICACIÓN MEJORADA)           ║');
   console.log('╚════════════════════════════════════════════╝\n');
   
   const isProduction = process.env.NODE_ENV === 'production';
@@ -228,58 +229,46 @@ async function startSpeedTest() {
 
     console.log(`📆 Buscando día: ${tomorrow.fullDate}...`);
     
-    // Buscar el día correcto dentro del iframe
+    const dayInfo = await frame.evaluate((targetFullDate) => {
+      const table = document.querySelector('table.mitabla');
+      if (!table) {
+        return { found: false, message: '❌ No se encontró la tabla de días' };
+      }
 
-
-const dayInfo = await frame.evaluate((targetFullDate) => {
-  const table = document.querySelector('table.mitabla');
-  if (!table) {
-    return { found: false, message: '❌ No se encontró la tabla de días' };
-  }
-
-  const rows = table.querySelectorAll('tbody tr.mitabla');
-  
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const firstCell = row.querySelector('td');
-    const dayText = firstCell ? firstCell.textContent.trim().toLowerCase() : '';
-    
-    // 🔹 Buscar coincidencia con la fecha completa (ej: "25 de octubre")
-    if (dayText.includes(targetFullDate.toLowerCase())) {
-      const link = row.querySelector('a[onclick*="teeTimeFecha"]');
-      const onclick = link ? link.getAttribute('onclick') : null;
+      const rows = table.querySelectorAll('tbody tr.mitabla');
       
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const firstCell = row.querySelector('td');
+        const dayText = firstCell ? firstCell.textContent.trim().toLowerCase() : '';
+        
+        if (dayText.includes(targetFullDate.toLowerCase())) {
+          const link = row.querySelector('a[onclick*="teeTimeFecha"]');
+          const onclick = link ? link.getAttribute('onclick') : null;
+          
+          return {
+            found: true,
+            dayText: dayText,
+            onclick: onclick,
+            rowIndex: i
+          };
+        }
+      }
+
       return {
-        found: true,
-        dayText: dayText,
-        onclick: onclick,
-        rowIndex: i
+        found: false,
+        availableDays: Array.from(rows)
+          .map(r => r.querySelector('td')?.textContent.trim())
+          .filter(Boolean),
+        totalRows: rows.length
       };
-    }
-  }
-
-  // 🔹 Si no se encuentra, devolver info útil para debug
-  return {
-    found: false,
-    availableDays: Array.from(rows)
-      .map(r => r.querySelector('td')?.textContent.trim())
-      .filter(Boolean),
-    totalRows: rows.length
-  };
-}, tomorrow.fullDate);
-
-if (!dayInfo.found) {
-  console.error('❌ Día no encontrado. Días disponibles:', dayInfo.availableDays);
-  throw new Error('No se encontró el día correcto en la tabla.');
-}
-
-
+    }, tomorrow.fullDate);
 
     if (!dayInfo.found) {
       console.log('⚠️  DÍA NO DISPONIBLE');
       console.log(`   Buscado: ${tomorrow.fullDate}`);
       console.log(`   Días disponibles en tabla: ${dayInfo.totalRows}`);
-      if (dayInfo.availableDays.length > 0) {
+      if (dayInfo.availableDays && dayInfo.availableDays.length > 0) {
         console.log(`   Días encontrados:`);
         dayInfo.availableDays.forEach((day, i) => {
           console.log(`      ${i + 1}. ${day}`);
@@ -289,6 +278,7 @@ if (!dayInfo.found) {
       
       await browser.close();
       console.log('✅ Navegador cerrado');
+      console.log('✅ Bot finalizado correctamente\n');
       return;
     }
 
@@ -440,22 +430,74 @@ if (!dayInfo.found) {
       
       await browser.close();
       console.log('✅ Navegador cerrado');
+      console.log('✅ Bot finalizado correctamente\n');
       return;
     }
 
     console.log('📝 Llenando formulario...\n');
-    await sleep(2000);
+    await sleep(3000);
 
     console.log('👥 3 jugadores...');
-await frame.waitForSelector('input[name="num-jugadores"]', { timeout: 20000 });
-await frame.evaluate(() => {
-  const radio3 = document.querySelector('input[name="num-jugadores"][value="3"]');
-  if (radio3) {
-    radio3.click();
-    radio3.checked = true;
-  }
-});
-    console.log('✔️');
+    
+    // ✅ SOLUCIÓN MEJORADA: Sistema de reintentos con verificación post-click
+    let jugadoresFound = false;
+    for (let retry = 0; retry < 5 && !jugadoresFound; retry++) {
+      try {
+        // Verificar que el contenedor del formulario está visible
+        await frame.waitForFunction(() => {
+          const formulario = document.querySelector('#formulario, #tee-time-detalle, div[id*="detalle"]');
+          return formulario !== null;
+        }, { timeout: 5000 });
+        
+        await sleep(1000);
+        
+        // Intentar encontrar los radio buttons de jugadores
+        const radioExists = await frame.evaluate(() => {
+          const radios = document.querySelectorAll('input[name="num-jugadores"]');
+          return radios.length > 0;
+        });
+        
+        if (radioExists) {
+          await frame.evaluate(() => {
+            const radio3 = document.querySelector('input[name="num-jugadores"][value="3"]');
+            if (radio3) {
+              radio3.click();
+              radio3.checked = true;
+              // Trigger change event
+              const event = new Event('change', { bubbles: true });
+              radio3.dispatchEvent(event);
+            }
+          });
+          
+          // ✅ VERIFICACIÓN POST-CLICK: Asegurar que quedó seleccionado
+          await sleep(500);
+          
+          const isChecked = await frame.evaluate(() => {
+            const radio3 = document.querySelector('input[name="num-jugadores"][value="3"]');
+            return radio3 && radio3.checked;
+          });
+          
+          if (isChecked) {
+            jugadoresFound = true;
+            console.log('✔️ (3 jugadores confirmado)');
+          } else {
+            console.log(`   ⚠️ Radio no quedó seleccionado, reintentando ${retry + 1}/5...`);
+            await sleep(2000);
+          }
+        } else {
+          console.log(`   ⏳ Reintento ${retry + 1}/5...`);
+          await sleep(2000);
+        }
+      } catch (e) {
+        console.log(`   ⏳ Reintento ${retry + 1}/5...`);
+        await sleep(2000);
+      }
+    }
+    
+    if (!jugadoresFound) {
+      throw new Error('No se encontró o seleccionó el número de jugadores después de varios intentos');
+    }
+    
     await sleep(1500);
 
     console.log('🚗 Sin carro...');
@@ -643,3 +685,4 @@ await frame.evaluate(() => {
 }
 
 startSpeedTest();
+console.log('✅ Bot finalizado correctamente');
