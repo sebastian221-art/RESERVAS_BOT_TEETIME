@@ -56,7 +56,7 @@
             font-weight: 600;
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 12px;
             border: 2px solid #e0e0e0;
@@ -65,7 +65,7 @@
             transition: all 0.3s;
         }
 
-        input:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -75,6 +75,22 @@
             font-size: 12px;
             color: #999;
             margin-top: 5px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .time-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
 
         .button-container {
@@ -136,6 +152,78 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* MODAL DE RE-INTENTO */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-icon {
+            font-size: 40px;
+            margin-right: 15px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .modal-message {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-input {
+            margin-bottom: 15px;
         }
 
         .logs-container {
@@ -253,6 +341,10 @@
             button {
                 width: 100%;
             }
+
+            .time-selector {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -274,12 +366,44 @@
 
             <div class="form-group">
                 <label for="codigo1">👥 Código Socio 1</label>
-                <input type="text" id="codigo1" placeholder="4415" required>
+                <input type="text" id="codigo1" placeholder="1929" required>
             </div>
 
             <div class="form-group">
                 <label for="codigo2">👥 Código Socio 2</label>
-                <input type="text" id="codigo2" placeholder="4443" required>
+                <input type="text" id="codigo2" placeholder="2862" required>
+            </div>
+
+            <div class="warning-box">
+                ⚠️ <strong>Horarios disponibles:</strong><br>
+                • Lunes a Viernes: Desde las 6:00 AM<br>
+                • Sábados y Domingos: Desde las 5:30 AM
+            </div>
+
+            <div class="form-group">
+                <label for="minHour">⏰ Hora Mínima Deseada</label>
+                <div class="time-selector">
+                    <select id="minHour" required>
+                        <option value="">Hora</option>
+                        <option value="5">5 AM</option>
+                        <option value="6" selected>6 AM</option>
+                        <option value="7">7 AM</option>
+                        <option value="8">8 AM</option>
+                        <option value="9">9 AM</option>
+                        <option value="10">10 AM</option>
+                        <option value="11">11 AM</option>
+                        <option value="12">12 PM</option>
+                    </select>
+                    <select id="minMinute" required>
+                        <option value="0">00</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="40">40</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="hint">Selecciona el horario más temprano que aceptarías</div>
             </div>
 
             <div class="button-container">
@@ -306,7 +430,65 @@
         </div>
 
         <div class="footer">
-            Bot Tee Time v2.0 | Diseñado para velocidad máxima ⚡
+            Bot Tee Time v2.1 | Sistema con Validaciones Inteligentes ⚡
+        </div>
+    </div>
+
+    <!-- MODAL PARA RE-INTENTAR LOGIN -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon">🔐</div>
+                <div class="modal-title">Error de Autenticación</div>
+            </div>
+            <div class="modal-message">
+                Las credenciales ingresadas son incorrectas. Por favor, verifica tu usuario y contraseña.
+            </div>
+            <div class="modal-input">
+                <label for="retryUsuario">Usuario:</label>
+                <input type="text" id="retryUsuario" placeholder="Usuario del club">
+            </div>
+            <div class="modal-input">
+                <label for="retryPassword">Contraseña:</label>
+                <input type="password" id="retryPassword" placeholder="Contraseña">
+            </div>
+            <div class="modal-buttons">
+                <button onclick="retryLogin()" class="btn-primary" style="flex: 2;">
+                    🔄 Reintentar
+                </button>
+                <button onclick="cancelBot()" class="btn-danger" style="flex: 1;">
+                    ❌ Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA RE-INTENTAR CÓDIGOS -->
+    <div id="codigosModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon">👥</div>
+                <div class="modal-title">Error en Códigos de Socios</div>
+            </div>
+            <div class="modal-message" id="codigosMessage">
+                Uno o ambos códigos de socios son incorrectos o no se encontraron.
+            </div>
+            <div class="modal-input">
+                <label for="retryCodigo1">Código Socio 1:</label>
+                <input type="text" id="retryCodigo1" placeholder="Código del primer socio">
+            </div>
+            <div class="modal-input">
+                <label for="retryCodigo2">Código Socio 2:</label>
+                <input type="text" id="retryCodigo2" placeholder="Código del segundo socio">
+            </div>
+            <div class="modal-buttons">
+                <button onclick="retryCodigos()" class="btn-primary" style="flex: 2;">
+                    🔄 Reintentar
+                </button>
+                <button onclick="cancelBot()" class="btn-danger" style="flex: 1;">
+                    ❌ Cancelar
+                </button>
+            </div>
         </div>
     </div>
 
@@ -319,6 +501,9 @@
         const logsBox = document.getElementById('logsBox');
         const statusBar = document.getElementById('statusBar');
         const statusText = document.getElementById('statusText');
+        
+        const loginModal = document.getElementById('loginModal');
+        const codigosModal = document.getElementById('codigosModal');
 
         // Cargar datos guardados
         window.addEventListener('load', function() {
@@ -328,10 +513,23 @@
                 document.getElementById('usuario').value = data.usuario || '';
                 document.getElementById('codigo1').value = data.codigo1 || '';
                 document.getElementById('codigo2').value = data.codigo2 || '';
+                if (data.minHour) document.getElementById('minHour').value = data.minHour;
+                if (data.minMinute) document.getElementById('minMinute').value = data.minMinute;
             }
         });
 
-        // Función para agregar log
+        // Validar horario según día de la semana
+        document.getElementById('minHour').addEventListener('change', function() {
+            const hour = parseInt(this.value);
+            const minute = parseInt(document.getElementById('minMinute').value);
+            const today = new Date().getDay(); // 0 = domingo, 6 = sábado
+            
+            if (hour === 5 && (today !== 0 && today !== 6)) {
+                alert('⚠️ Horarios de 5:XX AM solo están disponibles los fines de semana (sábado y domingo)');
+                this.value = '6';
+            }
+        });
+
         function addLog(message, type = 'info') {
             const entry = document.createElement('div');
             entry.className = `log-entry log-${type}`;
@@ -341,12 +539,10 @@
             logsBox.scrollTop = logsBox.scrollHeight;
         }
 
-        // Función para limpiar logs
         function clearLogs() {
             logsBox.innerHTML = '';
         }
 
-        // Función para actualizar estado
         function updateStatus(status) {
             const indicator = statusBar.querySelector('.status-indicator');
             indicator.className = 'status-indicator';
@@ -378,29 +574,99 @@
             }
         }
 
-        // Socket.io - Recibir logs
+        // Socket.io eventos
         socket.on('bot-log', (data) => {
             addLog(data.message, data.type);
         });
 
-        // Socket.io - Recibir estado
         socket.on('bot-status', (data) => {
             updateStatus(data.status);
         });
+
+        // Solicitar re-intento de login
+        socket.on('request-login-retry', () => {
+            document.getElementById('retryUsuario').value = document.getElementById('usuario').value;
+            document.getElementById('retryPassword').value = '';
+            loginModal.classList.add('show');
+        });
+
+        // Solicitar re-intento de códigos
+        socket.on('request-codigos-retry', (data) => {
+            document.getElementById('codigosMessage').textContent = data.message || 'Uno o ambos códigos son incorrectos.';
+            document.getElementById('retryCodigo1').value = document.getElementById('codigo1').value;
+            document.getElementById('retryCodigo2').value = document.getElementById('codigo2').value;
+            codigosModal.classList.add('show');
+        });
+
+        // Reintentar login
+        async function retryLogin() {
+            const usuario = document.getElementById('retryUsuario').value.trim();
+            const password = document.getElementById('retryPassword').value.trim();
+            
+            if (!usuario || !password) {
+                alert('Por favor completa ambos campos');
+                return;
+            }
+            
+            loginModal.classList.remove('show');
+            addLog('🔄 Reintentando login con nuevas credenciales...', 'info');
+            
+            socket.emit('retry-login', { usuario, password });
+        }
+
+        // Reintentar códigos
+        async function retryCodigos() {
+            const codigo1 = document.getElementById('retryCodigo1').value.trim();
+            const codigo2 = document.getElementById('retryCodigo2').value.trim();
+            
+            if (!codigo1 || !codigo2) {
+                alert('Por favor completa ambos códigos');
+                return;
+            }
+            
+            codigosModal.classList.remove('show');
+            addLog('🔄 Reintentando con nuevos códigos...', 'info');
+            
+            socket.emit('retry-codigos', { codigo1, codigo2 });
+        }
+
+        // Cancelar bot
+        async function cancelBot() {
+            loginModal.classList.remove('show');
+            codigosModal.classList.remove('show');
+            
+            await fetch('/stop-bot', { method: 'POST' });
+            
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '🚀 Iniciar Bot';
+            stopBtn.disabled = true;
+            updateStatus('stopped');
+        }
 
         // Enviar formulario
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const usuario = document.getElementById('usuario').value;
-            const password = document.getElementById('password').value;
+            const usuario = document.getElementById('usuario').value.trim();
+            const password = document.getElementById('password').value.trim();
             const codigo1 = document.getElementById('codigo1').value.trim();
             const codigo2 = document.getElementById('codigo2').value.trim();
+            const minHour = parseInt(document.getElementById('minHour').value);
+            const minMinute = parseInt(document.getElementById('minMinute').value);
+
+            // Validación de hora según día
+            const today = new Date().getDay();
+            if (minHour === 5 && (today !== 0 && today !== 6)) {
+                alert('⚠️ Horarios de 5:XX AM solo disponibles los fines de semana');
+                return;
+            }
 
             localStorage.setItem('botData', JSON.stringify({ 
                 usuario,
                 codigo1,
-                codigo2
+                codigo2,
+                minHour,
+                minMinute
             }));
 
             submitBtn.disabled = true;
@@ -414,14 +680,14 @@
             try {
                 const response = await fetch('/start-bot', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         usuario, 
                         password,
                         codigo1,
-                        codigo2
+                        codigo2,
+                        minHour,
+                        minMinute
                     })
                 });
 
@@ -430,8 +696,7 @@
                 if (response.ok) {
                     addLog('✅ Bot iniciado correctamente', 'success');
                     addLog(`Usuario: ${usuario}`, 'info');
-                    addLog(`Códigos: ${codigo1}, ${codigo2}`, 'info');
-                    addLog('Esperando logs del bot...', 'info');
+                    addLog(`Horario mínimo: ${minHour}:${minMinute.toString().padStart(2,'0')} AM`, 'info');
                     updateStatus('running');
                 } else {
                     addLog(`❌ Error: ${result.error}`, 'error');
@@ -449,52 +714,37 @@
             }
         });
 
-        // ✅ BOTÓN DETENER BOT
+        // Detener bot
         stopBtn.addEventListener('click', async function() {
-            if (!confirm('¿Estás seguro de que deseas detener el bot?')) {
-                return;
-            }
+            if (!confirm('¿Estás seguro de que deseas detener el bot?')) return;
 
             stopBtn.disabled = true;
             stopBtn.innerHTML = '<span class="loader"></span> Deteniendo...';
 
             try {
-                const response = await fetch('/stop-bot', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
+                const response = await fetch('/stop-bot', { method: 'POST' });
                 const result = await response.json();
 
                 if (result.success) {
                     addLog('🛑 Bot detenido por el usuario', 'warning');
                     updateStatus('stopped');
-                    
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '🚀 Iniciar Bot';
-                    stopBtn.disabled = true;
-                    stopBtn.innerHTML = '🛑 Detener Bot';
-                } else {
-                    addLog('⚠️ No hay bot ejecutándose', 'warning');
-                    stopBtn.disabled = true;
-                    stopBtn.innerHTML = '🛑 Detener Bot';
                 }
             } catch (error) {
                 addLog(`❌ Error al detener: ${error.message}`, 'error');
-                stopBtn.disabled = false;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Iniciar Bot';
+                stopBtn.disabled = true;
                 stopBtn.innerHTML = '🛑 Detener Bot';
             }
         });
 
-        // Detectar cuando el bot termina automáticamente
+        // Detectar cuando el bot termina
         socket.on('bot-status', (data) => {
             if (data.status === 'completed' || data.status === 'error' || data.status === 'stopped') {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '🚀 Iniciar Bot';
                 stopBtn.disabled = true;
-                stopBtn.innerHTML = '🛑 Detener Bot';
             }
         });
     </script>

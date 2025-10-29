@@ -1,4 +1,4 @@
-// app.js - VERSIÓN SIN WHATSAPP/TWILIO - CON VERIFICACIÓN MEJORADA
+// app.js - VERSIÓN MÁXIMA VELOCIDAD + REFRESH + FUNCIONAL
 import 'dotenv/config';
 import puppeteer from 'puppeteer';
 
@@ -6,6 +6,8 @@ const USER_CLUB = process.argv[2] || process.env.USER_CLUB;
 const PASS_CLUB = process.argv[3] || process.env.PASS_CLUB;
 const CODIGO_SOCIO_1 = process.argv[4] || process.env.CODIGO_SOCIO_1;
 const CODIGO_SOCIO_2 = process.argv[5] || process.env.CODIGO_SOCIO_2;
+const MIN_HOUR = parseInt(process.argv[6]) || 6;
+const MIN_MINUTE = parseInt(process.argv[7]) || 10;
 
 if (!USER_CLUB || !PASS_CLUB || !CODIGO_SOCIO_1 || !CODIGO_SOCIO_2) {
   throw new Error('❌ Faltan credenciales');
@@ -14,14 +16,13 @@ if (!USER_CLUB || !PASS_CLUB || !CODIGO_SOCIO_1 || !CODIGO_SOCIO_2) {
 const CODIGOS_SOCIOS = [CODIGO_SOCIO_1, CODIGO_SOCIO_2];
 
 const TURBO_CONFIG = {
-  POLL_INTERVAL_MS: 100,
-  CLICK_DELAY_MS: 30,
+  POLL_INTERVAL_MS: 1,
   TARGET_HOUR: 14,
   TARGET_MINUTE: 0,
   SECONDS_BEFORE: 2,
-  MAX_ATTEMPTS: 200,
-  MIN_HOUR: 6,
-  MIN_MINUTE: 10
+  MAX_ATTEMPTS: 2000,
+  MIN_HOUR: MIN_HOUR,
+  MIN_MINUTE: MIN_MINUTE
 };
 
 async function sleep(ms) {
@@ -29,7 +30,6 @@ async function sleep(ms) {
 }
 
 async function waitUntilExactTime(targetHour, targetMinute, secondsBefore) {
-  // ✅ FORZAR ZONA HORARIA DE COLOMBIA (America/Bogota = UTC-5)
   const now = new Date();
   const nowColombia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
   
@@ -88,20 +88,19 @@ function getTomorrowDate() {
 
 async function startSpeedTest() {
   console.log('╔════════════════════════════════════════════╗');
-  console.log('║   🏌️‍♂️  BOT TEE TIME - ULTRA-RÁPIDO 🏌️‍♂️    ║');
-  console.log('║     (CON VERIFICACIÓN MEJORADA)           ║');
+  console.log('║ 🏌️‍♂️ BOT VELOCIDAD MÁXIMA ABSOLUTA 🏌️‍♂️ ║');
   console.log('╚════════════════════════════════════════════╝\n');
   
   const isProduction = process.env.NODE_ENV === 'production';
   const tomorrow = getTomorrowDate();
   
-  console.log('⚡ Configuración:');
+  console.log('🚀 Configuración VELOCIDAD MÁXIMA:');
   console.log(`   - Usuario: ${USER_CLUB}`);
   console.log(`   - Socios: ${CODIGOS_SOCIOS.join(', ')}`);
   console.log(`   - Entorno: ${isProduction ? 'PRODUCCIÓN' : 'DESARROLLO'}`);
   console.log(`   - Headless: ${isProduction ? 'SÍ' : 'NO'}`);
-  console.log(`   - Polling: ${TURBO_CONFIG.POLL_INTERVAL_MS}ms`);
-  console.log(`   - Horario mínimo: 6:10 AM`);
+  console.log(`   - Polling: ${TURBO_CONFIG.POLL_INTERVAL_MS}ms 🔥🔥🔥`);
+  console.log(`   - Horario mínimo: ${MIN_HOUR}:${MIN_MINUTE.toString().padStart(2,'0')} AM`);
   console.log(`   - Día objetivo: ${tomorrow.fullDate}\n`);
 
   console.log('🤖 Bot iniciado - Esperando hasta las 2:00 PM...\n');
@@ -116,8 +115,6 @@ async function startSpeedTest() {
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
-      "--disable-software-rasterizer",
-      "--disable-extensions",
       "--start-maximized",
       "--disable-blink-features=AutomationControlled"
     ],
@@ -128,7 +125,7 @@ async function startSpeedTest() {
     timeout: 0
   });
 
-  console.log('✅ Navegador iniciado (modo headless moderno)\n');
+  console.log('✅ Navegador iniciado\n');
 
   const page = await browser.newPage();
   page.setDefaultTimeout(90000);
@@ -150,11 +147,27 @@ async function startSpeedTest() {
     await page.type('#txtPassword', PASS_CLUB.toString(), { delay: 30 });
 
     await page.evaluate(() => {
-      const btn = document.querySelector("button.btn-success[type='submit'], button.btn-success");
+      const btn = document.querySelector("button.btn-success[type='submit']");
       if (btn) btn.click();
     });
 
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
+    
+    await sleep(2000);
+    const hasAlert = await page.evaluate(() => {
+      return document.querySelector('.swal2-popup.swal2-show') !== null;
+    });
+    
+    if (hasAlert) {
+      console.error('❌ Error de autenticación: Usuario o contraseña incorrectos');
+      await page.evaluate(() => {
+        const okBtn = document.querySelector('.swal2-confirm');
+        if (okBtn) okBtn.click();
+      });
+      console.log('⏳ Navegador abierto. Presiona Ctrl+C para detener.');
+      await new Promise(() => {});
+    }
+    
     console.log('✔️ Login OK\n');
 
     console.log('📋 Accediendo a Tee Time...');
@@ -187,7 +200,10 @@ async function startSpeedTest() {
       await sleep(3000);
     }
 
-    if (!iframeFound) throw new Error('Iframe no encontrado');
+    if (!iframeFound) {
+      console.log('⚠️ Iframe no encontrado');
+      await new Promise(() => {});
+    }
     
     await sleep(5000);
     
@@ -210,7 +226,10 @@ async function startSpeedTest() {
       }
     }
     
-    if (!frame) throw new Error('Frame no accesible');
+    if (!frame) {
+      console.log('⚠️ Frame no accesible');
+      await new Promise(() => {});
+    }
     
     console.log('✔️ Frame OK\n');
 
@@ -267,27 +286,14 @@ async function startSpeedTest() {
     if (!dayInfo.found) {
       console.log('⚠️  DÍA NO DISPONIBLE');
       console.log(`   Buscado: ${tomorrow.fullDate}`);
-      console.log(`   Días disponibles en tabla: ${dayInfo.totalRows}`);
-      if (dayInfo.availableDays && dayInfo.availableDays.length > 0) {
-        console.log(`   Días encontrados:`);
-        dayInfo.availableDays.forEach((day, i) => {
-          console.log(`      ${i + 1}. ${day}`);
-        });
-      }
-      console.log('');
-      
-      await browser.close();
-      console.log('✅ Navegador cerrado');
-      console.log('✅ Bot finalizado correctamente\n');
-      return;
+      console.log('⏳ Navegador permanece abierto.');
+      await new Promise(() => {});
     }
 
     console.log(`✅ Día encontrado: ${dayInfo.dayText}`);
     
     await frame.evaluate(oc => {
-      try { eval(oc); } catch(e) {
-        console.error('Error ejecutando onclick:', e);
-      }
+      try { eval(oc); } catch(e) {}
     }, dayInfo.onclick);
 
     console.log('✔️ Click ejecutado');
@@ -297,6 +303,7 @@ async function startSpeedTest() {
     await frame.waitForSelector('#tee-time', { timeout: 60000 });
     console.log('✔️ Horarios cargados\n');
 
+    // ⏰ ESPERAR HASTA LAS 1:59:58 PM
     console.log('🕐 Sincronizando con 2:00:00 PM...');
     await waitUntilExactTime(
       TURBO_CONFIG.TARGET_HOUR, 
@@ -307,6 +314,7 @@ async function startSpeedTest() {
     console.log('⚡ A 2 SEGUNDOS DE LAS 2 PM - Preparando...\n');
     await sleep(1500);
 
+    // 🔄 HACER REFRESH COMO EN EL ORIGINAL
     console.log('🔄 Haciendo REFRESH...');
     await frame.evaluate(() => {
       const refreshBtn = document.querySelector("a.refresh");
@@ -315,38 +323,36 @@ async function startSpeedTest() {
     await sleep(500);
 
     console.log('⚡ SON LAS 2:00:00 PM - POLLING INICIADO!\n');
-    
+
+    // 🔥🔥🔥 VELOCIDAD MÁXIMA - AUTO-CLICKER INYECTADO
     const pollStart = Date.now();
     let clicked = false;
     let selectedTime = '';
     let pollCount = 0;
 
-    for (let attempt = 1; attempt <= TURBO_CONFIG.MAX_ATTEMPTS && !clicked; attempt++) {
-      pollCount++;
-
-      const candidates = await frame.evaluate(() => {
-        const buttons = Array.from(document.querySelectorAll('#tee-time a[onclick*="xajax_teeTimeDetalle"]'));
+    // INYECTAR AUTO-CLICKER EN EL NAVEGADOR
+    await frame.evaluate((minHour, minMinute) => {
+      window.__clickerActive = true;
+      window.__clickerResult = null;
+      
+      window.__autoClicker = function() {
+        if (!window.__clickerActive) return;
         
-        return buttons.map(btn => {
-          const onclick = btn.getAttribute('onclick');
-          const div = btn.querySelector('div');
-          const text = div ? div.innerText.trim() : '';
-          
-          return {
-            onclick: onclick,
-            text: text
-          };
-        }).filter(b => b.text.length > 0);
-      });
-
-      if (candidates.length > 0) {
-        if (pollCount === 1 || (pollCount > 1 && attempt === 1)) {
-          console.log(`📊 ${candidates.length} slots detectados!`);
+        const buttons = document.querySelectorAll('#tee-time a[onclick*="xajax_teeTimeDetalle"]');
+        if (buttons.length === 0) {
+          requestAnimationFrame(window.__autoClicker);
+          return;
         }
 
-        const available = candidates.filter(c => {
-          const match = c.text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
-          if (!match) return false;
+        const candidates = [];
+        
+        for (const btn of buttons) {
+          const div = btn.querySelector('div');
+          const text = div ? div.innerText.trim() : '';
+          if (!text) continue;
+          
+          const match = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
+          if (!match) continue;
           
           let hour = parseInt(match[1]);
           const minute = parseInt(match[2]);
@@ -356,102 +362,96 @@ async function startSpeedTest() {
           if (period === 'am' && hour === 12) hour = 0;
           
           const timeInMinutes = hour * 60 + minute;
-          const minTime = TURBO_CONFIG.MIN_HOUR * 60 + TURBO_CONFIG.MIN_MINUTE;
+          const minTime = minHour * 60 + minMinute;
           
-          return timeInMinutes >= minTime;
-        });
-        
-        available.sort((a, b) => {
-          const matchA = a.text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
-          const matchB = b.text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
-          
-          if (!matchA || !matchB) return 0;
-          
-          let hourA = parseInt(matchA[1]);
-          const minA = parseInt(matchA[2]);
-          const periodA = matchA[3].toLowerCase();
-          
-          let hourB = parseInt(matchB[1]);
-          const minB = parseInt(matchB[2]);
-          const periodB = matchB[3].toLowerCase();
-          
-          if (periodA === 'pm' && hourA !== 12) hourA += 12;
-          if (periodA === 'am' && hourA === 12) hourA = 0;
-          if (periodB === 'pm' && hourB !== 12) hourB += 12;
-          if (periodB === 'am' && hourB === 12) hourB = 0;
-          
-          const timeA = hourA * 60 + minA;
-          const timeB = hourB * 60 + minB;
-          
-          return timeA - timeB;
-        });
-
-        if (available.length > 0) {
-          const target = available[0];
-          console.log(`⚡ Intento ${attempt} (${pollCount} polls): ${target.text}`);
-
-          const clickSuccess = await frame.evaluate((targetOnclick) => {
-            const buttons = Array.from(document.querySelectorAll('#tee-time a[onclick*="xajax_teeTimeDetalle"]'));
-            const targetBtn = buttons.find(btn => btn.getAttribute('onclick') === targetOnclick);
-            if (targetBtn) {
-              targetBtn.click();
-              return true;
-            }
-            return false;
-          }, target.onclick);
-
-          if (clickSuccess) {
-            clicked = true;
-            selectedTime = target.text;
-            const totalTime = ((Date.now() - pollStart) / 1000).toFixed(3);
-            
-            console.log('\n🎉 ¡HORARIO CAPTURADO!');
-            console.log(`⚡ Tiempo: ${totalTime}s`);
-            console.log(`📊 Polls: ${pollCount}`);
-            console.log(`📅 Día: ${dayInfo.dayText}`);
-            console.log(`⏰ Horario: ${target.text}\n`);
-            
-            break;
+          if (timeInMinutes >= minTime) {
+            candidates.push({
+              btn: btn,
+              text: text,
+              time: timeInMinutes
+            });
           }
         }
+
+        if (candidates.length > 0) {
+          candidates.sort((a, b) => a.time - b.time);
+          const target = candidates[0];
+          target.btn.click();
+          
+          window.__clickerResult = {
+            found: true,
+            text: target.text,
+            count: buttons.length,
+            timestamp: Date.now()
+          };
+          window.__clickerActive = false;
+          return;
+        }
+        
+        requestAnimationFrame(window.__autoClicker);
+      };
+      
+      requestAnimationFrame(window.__autoClicker);
+    }, TURBO_CONFIG.MIN_HOUR, TURBO_CONFIG.MIN_MINUTE);
+
+    // MONITOREAR RESULTADO
+    while (!clicked && pollCount < TURBO_CONFIG.MAX_ATTEMPTS) {
+      pollCount++;
+      
+      const result = await frame.evaluate(() => window.__clickerResult);
+      
+      if (result && result.found) {
+        clicked = true;
+        selectedTime = result.text;
+        const totalTime = ((Date.now() - pollStart) / 1000).toFixed(3);
+        
+        console.log('\n🎉 ¡HORARIO CAPTURADO!');
+        console.log(`⚡ Tiempo: ${totalTime}s`);
+        console.log(`📅 Día: ${dayInfo.dayText}`);
+        console.log(`⏰ Horario: ${result.text}\n`);
+        
+        break;
       }
 
-      if (pollCount % 20 === 0 && candidates.length === 0) {
-        const elapsed = ((Date.now() - pollStart) / 1000).toFixed(1);
-        console.log(`⏳ ${pollCount} polls | ${elapsed}s | Esperando...`);
+      if (pollCount === 1) {
+        console.log('📊 Auto-clicker activado - buscando slots...');
+      }
+
+      if (pollCount % 500 === 0) {
+        const elapsed = ((Date.now() - pollStart) / 1000).toFixed(2);
+        console.log(`⏳ ${pollCount} checks | ${elapsed}s | Buscando...`);
       }
 
       await sleep(TURBO_CONFIG.POLL_INTERVAL_MS);
     }
 
+    // DETENER AUTO-CLICKER
+    await frame.evaluate(() => {
+      window.__clickerActive = false;
+    });
+
     if (!clicked) {
       console.log('\n⚠️  No se capturó horario');
-      console.log('No se encontró ningún horario >= 6:10 AM.');
-      
-      await browser.close();
-      console.log('✅ Navegador cerrado');
-      console.log('✅ Bot finalizado correctamente\n');
-      return;
+      console.log('⏳ Navegador permanece abierto.');
+      await new Promise(() => {});
     }
 
+    // ========== FORMULARIO CON MÁS TIEMPO ==========
     console.log('📝 Llenando formulario...\n');
-    await sleep(3000);
+    await sleep(5000); // MÁS TIEMPO PARA QUE CARGUE
 
     console.log('👥 3 jugadores...');
     
-    // ✅ SOLUCIÓN MEJORADA: Sistema de reintentos con verificación post-click
     let jugadoresFound = false;
-    for (let retry = 0; retry < 5 && !jugadoresFound; retry++) {
+    for (let retry = 0; retry < 10 && !jugadoresFound; retry++) {
       try {
-        // Verificar que el contenedor del formulario está visible
         await frame.waitForFunction(() => {
-          const formulario = document.querySelector('#formulario, #tee-time-detalle, div[id*="detalle"]');
-          return formulario !== null;
+          const selJugadores = document.querySelector('#selJugadores');
+          return selJugadores !== null;
         }, { timeout: 5000 });
         
         await sleep(1000);
         
-        // Intentar encontrar los radio buttons de jugadores
         const radioExists = await frame.evaluate(() => {
           const radios = document.querySelectorAll('input[name="num-jugadores"]');
           return radios.length > 0;
@@ -463,13 +463,11 @@ async function startSpeedTest() {
             if (radio3) {
               radio3.click();
               radio3.checked = true;
-              // Trigger change event
               const event = new Event('change', { bubbles: true });
               radio3.dispatchEvent(event);
             }
           });
           
-          // ✅ VERIFICACIÓN POST-CLICK: Asegurar que quedó seleccionado
           await sleep(500);
           
           const isChecked = await frame.evaluate(() => {
@@ -479,23 +477,24 @@ async function startSpeedTest() {
           
           if (isChecked) {
             jugadoresFound = true;
-            console.log('✔️ (3 jugadores confirmado)');
+            console.log('✔️');
           } else {
-            console.log(`   ⚠️ Radio no quedó seleccionado, reintentando ${retry + 1}/5...`);
+            console.log(`   ⚠️ Reintento ${retry + 1}/10...`);
             await sleep(2000);
           }
         } else {
-          console.log(`   ⏳ Reintento ${retry + 1}/5...`);
+          console.log(`   ⚠️ Reintento ${retry + 1}/10...`);
           await sleep(2000);
         }
       } catch (e) {
-        console.log(`   ⏳ Reintento ${retry + 1}/5...`);
+        console.log(`   ⚠️ Reintento ${retry + 1}/10...`);
         await sleep(2000);
       }
     }
     
     if (!jugadoresFound) {
-      throw new Error('No se encontró o seleccionó el número de jugadores después de varios intentos');
+      console.log('⚠️ No se pudo seleccionar 3 jugadores');
+      await new Promise(() => {});
     }
     
     await sleep(1500);
@@ -507,8 +506,6 @@ async function startSpeedTest() {
       if (radio) {
         radio.click();
         radio.checked = true;
-        const hidden = document.querySelector('#carritos');
-        if (hidden) hidden.value = '0';
       }
     });
     console.log('✔️');
@@ -521,8 +518,6 @@ async function startSpeedTest() {
       if (radio) {
         radio.click();
         radio.checked = true;
-        const hidden = document.querySelector('#formapago');
-        if (hidden) hidden.value = 'VA';
       }
     });
     console.log('✔️');
@@ -541,6 +536,7 @@ async function startSpeedTest() {
     console.log('✔️\n');
     await sleep(4000);
 
+    // ========== AGREGAR SOCIOS ==========
     console.log('👥 OTROS SOCIOS...');
     await frame.waitForSelector('#formulario', { timeout: 10000 });
     
@@ -557,80 +553,104 @@ async function startSpeedTest() {
     console.log('🔍 AGREGANDO SOCIOS...\n');
 
     for (let i = 0; i < CODIGOS_SOCIOS.length; i++) {
-      const codigo = CODIGOS_SOCIOS[i];
-      console.log(`📝 Socio ${i + 1}/2: ${codigo}`);
+      let codigo = CODIGOS_SOCIOS[i];
+      let agregado = false;
+      let intentos = 0;
+      
+      while (!agregado && intentos < 10) {
+        intentos++;
+        console.log(`📝 Socio ${i + 1}/2: ${codigo} (intento ${intentos})`);
 
-      await frame.evaluate(() => {
-        const radio = document.querySelector('#socio');
-        if (radio) {
-          radio.click();
-          radio.checked = true;
-        }
-      });
-      await sleep(400);
-
-      await frame.evaluate(() => {
-        const btn = document.querySelector('a.ok[onclick*="xajax_teeSeleccionJugadores"]');
-        if (btn) btn.click();
-      });
-
-      await sleep(1800);
-      await frame.waitForSelector('#filtro', { timeout: 10000 });
-
-      await frame.evaluate(() => {
-        const filtro = document.querySelector('#filtro');
-        if (filtro) filtro.value = '';
-      });
-
-      await frame.type('#filtro', codigo, { delay: 40 });
-      await sleep(400);
-
-      await frame.evaluate((cod) => {
-        const filtro = document.querySelector('#filtro');
-        if (filtro) {
-          filtro.value = cod;
-          const event = new Event('change', { bubbles: true });
-          filtro.dispatchEvent(event);
-        }
-      }, codigo);
-
-      await sleep(2500);
-
-      const agregado = await frame.evaluate(() => {
-        const btn = document.querySelector('#listadoSocios a.ok[onclick*="xajax_teeAgregarJugador"]');
-        if (btn) {
-          btn.click();
-          return true;
-        }
-        return false;
-      });
-
-      if (agregado) {
-        console.log(`   ✅`);
-        await sleep(2500);
-        
-        const modalOpen = await frame.evaluate(() => {
-          const modal = document.querySelector('#openModal');
-          return modal && modal.offsetParent !== null;
+        await frame.evaluate(() => {
+          const radio = document.querySelector('#socio');
+          if (radio) {
+            radio.click();
+            radio.checked = true;
+          }
         });
+        await sleep(400);
+
+        await frame.evaluate(() => {
+          const btn = document.querySelector('a.ok[onclick*="xajax_teeSeleccionJugadores"]');
+          if (btn) btn.click();
+        });
+
+        await sleep(1800);
         
-        if (modalOpen) {
+        try {
+          await frame.waitForSelector('#filtro', { timeout: 10000 });
+        } catch (e) {
+          console.log('   ⚠️ Campo no apareció, reintentando...');
+          continue;
+        }
+
+        await frame.evaluate(() => {
+          const filtro = document.querySelector('#filtro');
+          if (filtro) filtro.value = '';
+        });
+
+        await sleep(200);
+        await frame.type('#filtro', codigo, { delay: 40 });
+        await sleep(400);
+
+        await frame.evaluate((cod) => {
+          const filtro = document.querySelector('#filtro');
+          if (filtro) {
+            filtro.value = cod;
+            filtro.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }, codigo);
+
+        await sleep(2500);
+
+        const result = await frame.evaluate(() => {
+          const btn = document.querySelector('#listadoSocios a.ok[onclick*="xajax_teeAgregarJugador"]');
+          if (btn) {
+            btn.click();
+            return true;
+          }
+          return false;
+        });
+
+        if (result) {
+          console.log(`   ✅`);
+          agregado = true;
+          await sleep(2500);
+          
+          const modalOpen = await frame.evaluate(() => {
+            const modal = document.querySelector('#openModal');
+            return modal && modal.offsetParent !== null;
+          });
+          
+          if (modalOpen) {
+            await frame.evaluate(() => {
+              const close = document.querySelector('a.close[href="#close"]');
+              if (close) close.click();
+            });
+            await sleep(800);
+          }
+        } else {
+          console.log(`   ❌ Código no encontrado`);
+          
           await frame.evaluate(() => {
             const close = document.querySelector('a.close[href="#close"]');
             if (close) close.click();
           });
-          await sleep(800);
+          await sleep(1000);
+          
+          console.log(`🔔 CODIGO_ERROR:${i + 1}:${codigo}`);
+          console.log(`⏳ Esperando corrección (30 segundos)...`);
+          await sleep(30000);
+          
+          console.log('🔄 Reintentando...\n');
         }
-        console.log('');
-      } else {
-        console.log(`   ⚠️`);
-        await frame.evaluate(() => {
-          const close = document.querySelector('a.close[href="#close"]');
-          if (close) close.click();
-        });
-        await sleep(800);
-        console.log('');
       }
+      
+      if (!agregado) {
+        console.log(`⚠️ Socio ${i + 1} no agregado`);
+      }
+      
+      console.log('');
     }
 
     console.log('🎯 Finalizando...');
@@ -651,36 +671,22 @@ async function startSpeedTest() {
     }
 
     const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    const captureTime = ((Date.now() - pollStart) / 1000).toFixed(3);
     
     console.log('╔════════════════════════════════════════════╗');
     console.log('║       🎉 ¡RESERVA COMPLETADA! 🎉          ║');
     console.log('╚════════════════════════════════════════════╝\n');
     console.log(`📅 Día: ${dayInfo.dayText}`);
-    console.log(`⏰ Horario: ${selectedTime}\n`);
-    console.log(`👥 Jugadores:`);
-    console.log(`   • ${USER_CLUB} (tú)`);
-    console.log(`   • ${CODIGOS_SOCIOS[0]}`);
-    console.log(`   • ${CODIGOS_SOCIOS[1]}\n`);
-    console.log(`⚡ Velocidad de captura: ${captureTime}s`);
-    console.log(`⏱️ Tiempo total: ${totalTime}s\n`);
-    console.log(`🚗 Sin carro`);
-    console.log(`💳 Cargo al Carnet\n`);
-    console.log('✅ ¡Todo listo para jugar!\n');
+    console.log(`⏰ Horario: ${selectedTime}`);
+    console.log(`👥 Socios: ${CODIGOS_SOCIOS.join(', ')}`);
+    console.log(`⏱️  Tiempo total: ${totalTime}s\n`);
 
-    await browser.close();
-    console.log('✅ Navegador cerrado\n');
+    console.log('⏳ Navegador permanece abierto. Presiona Ctrl+C para detener.');
+    await new Promise(() => {});
 
   } catch (err) {
     console.error('\n❌ ERROR:', err.message);
-    console.error('Stack:', err.stack);
-    
-    try {
-      await browser.close();
-      console.log('✅ Navegador cerrado después de error');
-    } catch (e) {
-      console.error('Error cerrando navegador:', e.message);
-    }
+    console.log('⏳ Navegador permanece abierto.');
+    await new Promise(() => {});
   }
 }
 
