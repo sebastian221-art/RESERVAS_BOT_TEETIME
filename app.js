@@ -1,4 +1,4 @@
-// app.js - VERSIÓN MÁXIMA VELOCIDAD + REFRESH + FUNCIONAL
+// app.js - VERSIÓN ULTRA-SPEED CON ESPERA HASTA 2PM
 import 'dotenv/config';
 import puppeteer from 'puppeteer';
 
@@ -17,12 +17,12 @@ const CODIGOS_SOCIOS = [CODIGO_SOCIO_1, CODIGO_SOCIO_2];
 
 const TURBO_CONFIG = {
   POLL_INTERVAL_MS: 1,
-  TARGET_HOUR: 14,
-  TARGET_MINUTE: 0,
-  SECONDS_BEFORE: 2,
   MAX_ATTEMPTS: 2000,
   MIN_HOUR: MIN_HOUR,
-  MIN_MINUTE: MIN_MINUTE
+  MIN_MINUTE: MIN_MINUTE,
+  TARGET_HOUR: 14,
+  TARGET_MINUTE: 0,
+  SECONDS_BEFORE: 2
 };
 
 async function sleep(ms) {
@@ -88,22 +88,23 @@ function getTomorrowDate() {
 
 async function startSpeedTest() {
   console.log('╔════════════════════════════════════════════╗');
-  console.log('║ 🏌️‍♂️ BOT VELOCIDAD MÁXIMA ABSOLUTA 🏌️‍♂️ ║');
+  console.log('║ 🔥 BOT ULTRA-SPEED - ESPERA 2PM + CLICK 🔥║');
   console.log('╚════════════════════════════════════════════╝\n');
   
   const isProduction = process.env.NODE_ENV === 'production';
   const tomorrow = getTomorrowDate();
   
-  console.log('🚀 Configuración VELOCIDAD MÁXIMA:');
+  console.log('⚡ Configuración ULTRA-SPEED:');
   console.log(`   - Usuario: ${USER_CLUB}`);
   console.log(`   - Socios: ${CODIGOS_SOCIOS.join(', ')}`);
   console.log(`   - Entorno: ${isProduction ? 'PRODUCCIÓN' : 'DESARROLLO'}`);
   console.log(`   - Headless: ${isProduction ? 'SÍ' : 'NO'}`);
-  console.log(`   - Polling: ${TURBO_CONFIG.POLL_INTERVAL_MS}ms 🔥🔥🔥`);
+  console.log(`   - Sistema: MutationObserver + Triple Detección 🔥🔥🔥`);
   console.log(`   - Horario mínimo: ${MIN_HOUR}:${MIN_MINUTE.toString().padStart(2,'0')} AM`);
+  console.log(`   - Activación: 2:00 PM (espera hasta 1:59:58 PM)`);
   console.log(`   - Día objetivo: ${tomorrow.fullDate}\n`);
 
-  console.log('🤖 Bot iniciado - Esperando hasta las 2:00 PM...\n');
+  console.log('🤖 Bot iniciado - ULTRA-SPEED MODE\n');
 
   console.log('🌐 Iniciando navegador...');
   
@@ -303,7 +304,7 @@ async function startSpeedTest() {
     await frame.waitForSelector('#tee-time', { timeout: 60000 });
     console.log('✔️ Horarios cargados\n');
 
-    // ⏰ ESPERAR HASTA LAS 1:59:58 PM
+    // 🕐 ESPERAR HASTA LAS 2PM
     console.log('🕐 Sincronizando con 2:00:00 PM...');
     await waitUntilExactTime(
       TURBO_CONFIG.TARGET_HOUR, 
@@ -314,7 +315,6 @@ async function startSpeedTest() {
     console.log('⚡ A 2 SEGUNDOS DE LAS 2 PM - Preparando...\n');
     await sleep(1500);
 
-    // 🔄 HACER REFRESH COMO EN EL ORIGINAL
     console.log('🔄 Haciendo REFRESH...');
     await frame.evaluate(() => {
       const refreshBtn = document.querySelector("a.refresh");
@@ -322,35 +322,40 @@ async function startSpeedTest() {
     });
     await sleep(500);
 
-    console.log('⚡ SON LAS 2:00:00 PM - POLLING INICIADO!\n');
+    console.log('⚡ SON LAS 2:00:00 PM - ULTRA-SPEED ACTIVADO!\n');
 
-    // 🔥🔥🔥 VELOCIDAD MÁXIMA - AUTO-CLICKER INYECTADO
+    // 🔥🔥🔥 ULTRA-SPEED CLICKER CON MUTATIONOBSERVER
+    console.log('🔥🔥🔥 ULTRA-SPEED CLICKER ACTIVADO!\n');
+    console.log('⚡ MUTATIONOBSERVER + CLICK INSTANTÁNEO!\n');
+
     const pollStart = Date.now();
     let clicked = false;
     let selectedTime = '';
-    let pollCount = 0;
+    let clickTime = 0;
 
-    // INYECTAR AUTO-CLICKER EN EL NAVEGADOR
+    // INYECTAR ULTRA-SPEED CLICKER - REACCIÓN INSTANTÁNEA A CAMBIOS EN EL DOM
     await frame.evaluate((minHour, minMinute) => {
       window.__clickerActive = true;
       window.__clickerResult = null;
       
-      window.__autoClicker = function() {
-        if (!window.__clickerActive) return;
+      // Pre-compilar selectores y lógica
+      const SELECTOR = '#tee-time a[onclick*="xajax_teeTimeDetalle"]';
+      const MIN_TIME_MINUTES = minHour * 60 + minMinute;
+      
+      // Función de click ultra-optimizada
+      const tryClick = () => {
+        if (!window.__clickerActive) return false;
         
-        const buttons = document.querySelectorAll('#tee-time a[onclick*="xajax_teeTimeDetalle"]');
-        if (buttons.length === 0) {
-          requestAnimationFrame(window.__autoClicker);
-          return;
-        }
+        const buttons = document.querySelectorAll(SELECTOR);
+        if (buttons.length === 0) return false;
 
-        const candidates = [];
-        
-        for (const btn of buttons) {
+        // Buscar el primer horario válido SIN crear arrays ni objetos
+        for (let i = 0; i < buttons.length; i++) {
+          const btn = buttons[i];
           const div = btn.querySelector('div');
-          const text = div ? div.innerText.trim() : '';
-          if (!text) continue;
+          if (!div) continue;
           
+          const text = div.innerText.trim();
           const match = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
           if (!match) continue;
           
@@ -358,44 +363,84 @@ async function startSpeedTest() {
           const minute = parseInt(match[2]);
           const period = match[3].toLowerCase();
           
+          // Conversión rápida a minutos
           if (period === 'pm' && hour !== 12) hour += 12;
-          if (period === 'am' && hour === 12) hour = 0;
+          else if (period === 'am' && hour === 12) hour = 0;
           
           const timeInMinutes = hour * 60 + minute;
-          const minTime = minHour * 60 + minMinute;
           
-          if (timeInMinutes >= minTime) {
-            candidates.push({
-              btn: btn,
+          // CLICK INMEDIATO si cumple la condición
+          if (timeInMinutes >= MIN_TIME_MINUTES) {
+            btn.click();
+            window.__clickerResult = {
+              found: true,
               text: text,
-              time: timeInMinutes
-            });
+              count: buttons.length,
+              timestamp: Date.now()
+            };
+            window.__clickerActive = false;
+            return true;
           }
         }
+        return false;
+      };
 
-        if (candidates.length > 0) {
-          candidates.sort((a, b) => a.time - b.time);
-          const target = candidates[0];
-          target.btn.click();
-          
-          window.__clickerResult = {
-            found: true,
-            text: target.text,
-            count: buttons.length,
-            timestamp: Date.now()
-          };
-          window.__clickerActive = false;
+      // MÉTODO 1: MutationObserver - REACCIÓN INSTANTÁNEA
+      const observer = new MutationObserver((mutations) => {
+        if (!window.__clickerActive) {
+          observer.disconnect();
           return;
         }
         
-        requestAnimationFrame(window.__autoClicker);
+        // Solo procesar si hay cambios en el contenedor de horarios
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList' || mutation.type === 'attributes') {
+            if (tryClick()) {
+              observer.disconnect();
+              return;
+            }
+          }
+        }
+      });
+
+      // Observar el contenedor de horarios
+      const teeTimeContainer = document.querySelector('#tee-time');
+      if (teeTimeContainer) {
+        observer.observe(teeTimeContainer, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['style', 'class']
+        });
+      }
+
+      // MÉTODO 2: requestAnimationFrame como backup ultra-rápido
+      const animationLoop = () => {
+        if (!window.__clickerActive) return;
+        if (tryClick()) return;
+        requestAnimationFrame(animationLoop);
       };
+      requestAnimationFrame(animationLoop);
+
+      // MÉTODO 3: Interval de 0ms como triple backup
+      const intervalId = setInterval(() => {
+        if (!window.__clickerActive) {
+          clearInterval(intervalId);
+          return;
+        }
+        tryClick();
+      }, 0);
+
+      // MÉTODO 4: Click inmediato si ya existen botones
+      setTimeout(() => tryClick(), 0);
       
-      requestAnimationFrame(window.__autoClicker);
     }, TURBO_CONFIG.MIN_HOUR, TURBO_CONFIG.MIN_MINUTE);
 
-    // MONITOREAR RESULTADO
-    while (!clicked && pollCount < TURBO_CONFIG.MAX_ATTEMPTS) {
+    // MONITOREO ULTRA-LIGERO
+    let pollCount = 0;
+    const maxWait = 30000; // 30 segundos máximo de espera
+
+    while (!clicked && (Date.now() - pollStart) < maxWait) {
       pollCount++;
       
       const result = await frame.evaluate(() => window.__clickerResult);
@@ -403,42 +448,53 @@ async function startSpeedTest() {
       if (result && result.found) {
         clicked = true;
         selectedTime = result.text;
-        const totalTime = ((Date.now() - pollStart) / 1000).toFixed(3);
+        clickTime = Date.now();
+        const clickSpeed = ((clickTime - pollStart) / 1000).toFixed(3);
         
-        console.log('\n🎉 ¡HORARIO CAPTURADO!');
-        console.log(`⚡ Tiempo: ${totalTime}s`);
+        console.log('\n💥 ¡HORARIO CAPTURADO ULTRA-SPEED!');
+        console.log(`⚡ Click en: ${clickSpeed}s`);
         console.log(`📅 Día: ${dayInfo.dayText}`);
-        console.log(`⏰ Horario: ${result.text}\n`);
+        console.log(`⏰ Horario: ${result.text}`);
+        console.log(`📊 Total slots: ${result.count}\n`);
         
         break;
       }
 
       if (pollCount === 1) {
-        console.log('📊 Auto-clicker activado - buscando slots...');
+        console.log('📊 Triple detección activa (Observer+RAF+Interval)');
       }
 
-      if (pollCount % 500 === 0) {
+      if (pollCount % 1000 === 0) {
         const elapsed = ((Date.now() - pollStart) / 1000).toFixed(2);
-        console.log(`⏳ ${pollCount} checks | ${elapsed}s | Buscando...`);
+        console.log(`⏳ ${elapsed}s | Esperando horarios...`);
       }
 
-      await sleep(TURBO_CONFIG.POLL_INTERVAL_MS);
+      await sleep(1); // 1ms polling
     }
 
-    // DETENER AUTO-CLICKER
+    // LIMPIAR
     await frame.evaluate(() => {
       window.__clickerActive = false;
     });
 
     if (!clicked) {
-      console.log('\n⚠️  No se capturó horario');
+      console.log('\n⚠️  No se capturó horario en 30s');
       console.log('⏳ Navegador permanece abierto.');
       await new Promise(() => {});
     }
 
-    // ========== FORMULARIO CON MÁS TIEMPO ==========
+    // ========== FORMULARIO ==========
     console.log('📝 Llenando formulario...\n');
-    await sleep(5000); // MÁS TIEMPO PARA QUE CARGUE
+    await sleep(5000);
+    
+    const formLoadTime = Date.now();
+    const totalClickToForm = ((formLoadTime - clickTime) / 1000).toFixed(3);
+    const totalRealTime = ((formLoadTime - pollStart) / 1000).toFixed(3);
+    
+    console.log(`⏱️  TIEMPOS REALES:`);
+    console.log(`   - Click del horario: ${((clickTime - pollStart) / 1000).toFixed(3)}s`);
+    console.log(`   - Carga de formulario: ${totalClickToForm}s`);
+    console.log(`   - TIEMPO TOTAL REAL: ${totalRealTime}s\n`);
 
     console.log('👥 3 jugadores...');
     
@@ -671,14 +727,18 @@ async function startSpeedTest() {
     }
 
     const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    const realCaptureTime = ((formLoadTime - pollStart) / 1000).toFixed(3);
     
     console.log('╔════════════════════════════════════════════╗');
-    console.log('║       🎉 ¡RESERVA COMPLETADA! 🎉          ║');
+    console.log('║   🔥 ¡ULTRA-SPEED COMPLETADO! 🔥          ║');
     console.log('╚════════════════════════════════════════════╝\n');
     console.log(`📅 Día: ${dayInfo.dayText}`);
     console.log(`⏰ Horario: ${selectedTime}`);
-    console.log(`👥 Socios: ${CODIGOS_SOCIOS.join(', ')}`);
-    console.log(`⏱️  Tiempo total: ${totalTime}s\n`);
+    console.log(`👥 Socios: ${CODIGOS_SOCIOS.join(', ')}\n`);
+    console.log(`⚡ TIEMPOS:`);
+    console.log(`   - Captura del slot: ${((clickTime - pollStart) / 1000).toFixed(3)}s`);
+    console.log(`   - Hasta formulario listo: ${realCaptureTime}s`);
+    console.log(`   - Proceso completo: ${totalTime}s\n`);
 
     console.log('⏳ Navegador permanece abierto. Presiona Ctrl+C para detener.');
     await new Promise(() => {});
