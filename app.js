@@ -120,23 +120,32 @@ async function startSpeedTest() {
   console.log('🌐 Iniciando navegador...');
   
   const browser = await puppeteer.launch({
-    headless: isProduction ? 'new' : false,
-    defaultViewport: null,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--start-maximized",
-      "--disable-blink-features=AutomationControlled"
-    ],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 
-                    (process.platform === "linux"
-                      ? "/usr/bin/google-chrome-stable"
-                      : puppeteer.executablePath()),
-    timeout: 0
-  });
-
+  headless: isProduction ? 'new' : false,
+  defaultViewport: null,
+  args: [
+    // ✅ Seguridad básica (NECESARIO para Render)
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    
+    // ✅ Básicos (mantener)
+    "--disable-gpu",
+    "--start-maximized",
+    "--disable-blink-features=AutomationControlled",
+    
+    // 🔥🔥🔥 ANTI-CACHE (CRÍTICO - AGREGAR ESTOS 5) 🔥🔥🔥
+    "--disable-cache",
+    "--disable-application-cache",
+    "--disable-offline-load-stale-cache",
+    "--disk-cache-size=0",
+    "--aggressive-cache-discard",
+  ],
+  executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 
+                  (process.platform === "linux"
+                    ? "/usr/bin/google-chrome-stable"
+                    : puppeteer.executablePath()),
+  timeout: 0
+});
   console.log('✅ Navegador iniciado\n');
 
   const page = await browser.newPage();
@@ -318,12 +327,29 @@ await frame.waitForSelector('#tee-time', { timeout: 20000 }).catch(() => {
 });
 console.log('✔️ Contenedor listo\n');
 
+// 🔥 LIMPIAR CACHE ANTES DE ESPERAR
+console.log('🧹 Limpiando cache del navegador...');
+await frame.evaluate(() => {
+  // Limpiar cache
+  if ('caches' in window) {
+    caches.keys().then(names => {
+      names.forEach(name => caches.delete(name));
+    });
+  }
+  
+  // Limpiar storage (por si acaso)
+  try { localStorage.clear(); } catch(e) {}
+  try { sessionStorage.clear(); } catch(e) {}
+  
+  console.log('✅ Cache y storage limpiados');
+});
+
 // 🚀 PRE-INYECCIÓN ANTES DE ESPERAR
 console.log('╔════════════════════════════════════════════╗');
 console.log('║  🚀 BOT LISTO - ESPERANDO 1:59:58 PM  🚀 ║');
 console.log('╚════════════════════════════════════════════╝\n');
 
-console.log('🚀 PRE-INYECTANDO Ultra-Speed Clicker V11 COMPETITIVO...');
+console.log('🚀 PRE-INYECTANDO Ultra-Speed Clicker V14 ULTRA-DEFINITIVO...');
 
 await frame.evaluate((minHour, minMinute) => {
   window.__clickerActive = false;
@@ -335,21 +361,26 @@ await frame.evaluate((minHour, minMinute) => {
   window.__buttonHistory = [];
   window.__activationDetected = false;
   window.__clickAttempts = [];
-  window.__isVerifying = false; // ✅ NUEVO: Evita clicks duplicados durante verificación
+  window.__isVerifying = false;
   
   const MIN_TIME_MINUTES = minHour * 60 + minMinute;
   
-  // 🔥 PRE-CACHEO para velocidad máxima
-  let cachedContainer = document.querySelector('#tee-time');
+  // 🔥 PRE-COMPILAR REGEX PARA MÁXIMA VELOCIDAD
+  const timeRegex = /(\d{1,2}):(\d{2})\s*(am|pm)/i;
   
   window.__tryClick = (caller = 'unknown') => {
     if (!window.__clickerActive || window.__isVerifying) return false;
     
     window.__rafCallCount++;
     
-    // Usar cache si existe, sino buscar
-    if (!cachedContainer) cachedContainer = document.querySelector('#tee-time');
-    const buttons = cachedContainer?.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]') || [];
+    // 🔥 CRÍTICO: SIEMPRE buscar contenedor fresco (NO CACHE)
+    const freshContainer = document.querySelector('#tee-time');
+    if (!freshContainer) {
+      console.log(`⚠️ [${Date.now()}] Contenedor desaparecido`);
+      return false;
+    }
+    
+    const buttons = freshContainer.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
     
     if (window.__rafCallCount % 50 === 0) {
       console.log(`🔍 [${Date.now()}] RAF #${window.__rafCallCount} | Botones: ${buttons.length}`);
@@ -373,13 +404,26 @@ await frame.evaluate((minHour, minMinute) => {
     if (buttons.length === 0) return false;
 
     const validSlots = [];
+    const buttonsArray = Array.from(buttons);
     
-    for (let i = 0; i < buttons.length; i++) {
-      const div = buttons[i].querySelector('div');
+    for (let i = 0; i < buttonsArray.length; i++) {
+      const btn = buttonsArray[i];
+      
+      // 🔥 VALIDACIÓN #1: VERIFICAR QUE TIENE DIV
+      const div = btn.querySelector('div');
       if (!div) continue;
       
+      // 🔥 VALIDACIÓN #2: VERIFICAR QUE TIENE ONCLICK VÁLIDO
+      const onclick = btn.getAttribute('onclick');
+      if (!onclick || !onclick.includes('xajax_teeTimeDetalle')) {
+        console.log(`⚠️ Botón ${i} sin onclick válido - IGNORANDO`);
+        continue;
+      }
+      
       const text = div.innerText;
-      const match = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
+      
+      // 🔥 VALIDACIÓN #3: VERIFICAR REGEX DE TIEMPO
+      const match = text.match(timeRegex);
       if (!match) continue;
       
       let h = parseInt(match[1]);
@@ -391,12 +435,14 @@ await frame.evaluate((minHour, minMinute) => {
       
       const totalMinutes = h * 60 + m;
       
+      // 🔥 VALIDACIÓN #4: VERIFICAR HORARIO >= MIN_TIME
       if (totalMinutes >= MIN_TIME_MINUTES) {
         validSlots.push({
           index: i,
-          button: buttons[i],
+          button: btn,
           text: text.trim(),
-          totalMinutes: totalMinutes
+          totalMinutes: totalMinutes,
+          onclick: onclick
         });
       }
     }
@@ -405,18 +451,30 @@ await frame.evaluate((minHour, minMinute) => {
     
     let slotToTry = null;
     
-    for (let slot of validSlots) {
-      const alreadyTried = window.__clickAttempts.some(a => a.text === slot.text && !a.success);
-      if (!alreadyTried) {
-        slotToTry = slot;
-        break;
+    // 🔥🔥🔥 ESTRATEGIA ANTI-COMPETENCIA (CRÍTICO) 🔥🔥🔥
+    // En el PRIMER intento, elegir ALEATORIO de los primeros 3 slots
+    // Esto distribuye la carga y aumenta 33% probabilidad vs otros bots
+    if (window.__clickAttempts.length === 0 && validSlots.length >= 3) {
+      const topSlots = validSlots.slice(0, 3);
+      const randomIndex = Math.floor(Math.random() * topSlots.length);
+      slotToTry = topSlots[randomIndex];
+      console.log(`🎲 Estrategia anti-competencia: slot ${randomIndex + 1}/3 (${slotToTry.text})`);
+    } else {
+      // Estrategia normal: elegir el primero no intentado
+      for (let i = 0; i < validSlots.length; i++) {
+        const slot = validSlots[i];
+        const alreadyTried = window.__clickAttempts.some(a => a.text === slot.text && !a.success);
+        if (!alreadyTried) {
+          slotToTry = slot;
+          break;
+        }
       }
     }
     
     if (!slotToTry) {
       const failedAttempts = window.__clickAttempts.filter(a => !a.success);
-      if (failedAttempts.length >= validSlots.length * 3) { // ✅ 3 rondas en lugar de 2
-        console.log(`❌ [${Date.now()}] Todos ocupados después de 3 rondas`);
+      if (failedAttempts.length >= validSlots.length * 4) {
+        console.log(`❌ [${Date.now()}] Todos ocupados después de 4 rondas`);
         window.__clickerActive = false;
         window.__clickerResult = {
           found: false,
@@ -426,7 +484,7 @@ await frame.evaluate((minHour, minMinute) => {
         };
         return false;
       }
-      console.log(`⚠️ [${Date.now()}] Reintentando ronda ${Math.floor(failedAttempts.length / validSlots.length) + 1}...`);
+      console.log(`⚠️ [${Date.now()}] Ronda ${Math.floor(failedAttempts.length / validSlots.length) + 1}...`);
       slotToTry = validSlots[failedAttempts.length % validSlots.length];
     }
     
@@ -449,24 +507,67 @@ await frame.evaluate((minHour, minMinute) => {
     };
     window.__clickAttempts.push(attemptRecord);
     
-    // ✅ MARCAR COMO EN VERIFICACIÓN
     window.__isVerifying = true;
     
-    slotToTry.button.click();
+    // 🔥 VALIDACIÓN #5: RE-VERIFICAR QUE EL BOTÓN SIGUE EN EL DOM
+    const stillExists = document.contains(slotToTry.button);
+    if (!stillExists) {
+      console.log(`⚠️ [${Date.now()}] Botón desaparecido antes de click - Buscando otro...`);
+      window.__isVerifying = false;
+      window.__tryClick(caller + '_retry');
+      return true;
+    }
+    
+    // 🔥 VALIDACIÓN #6: CLICK CON MANEJO DE ERRORES
+    let clickSucceeded = false;
+    try {
+      slotToTry.button.click();
+      clickSucceeded = true;
+    } catch (e) {
+      console.log(`⚠️ [${Date.now()}] Error en click: ${e.message}`);
+    }
+    
+    // 🔥 SI CLICK FALLÓ, REINTENTAR CON EVAL (MÉTODO ALTERNATIVO)
+    if (!clickSucceeded) {
+      console.log(`🔄 Reintentando click con eval...`);
+      try {
+        eval(slotToTry.onclick);
+        clickSucceeded = true;
+      } catch (e) {
+        console.log(`❌ Click alternativo también falló: ${e.message}`);
+        window.__isVerifying = false;
+        return false;
+      }
+    }
     
     let checkCount = 0;
-    const maxChecks = 25; // ✅ Aumentado a 25 checks (250ms máximo)
+    const maxChecks = 50; // 500ms máximo
+    
+    // ✅ CACHE DE SELECTORES PARA VELOCIDAD
+    let cachedFormulario = null;
+    let cachedDivContinuar = null;
     
     const rapidCheck = () => {
       checkCount++;
       attemptRecord.verificationChecks = checkCount;
       
-      const formulario = document.querySelector('#selJugadores');
-      const divContinuar = document.querySelector('#divContinuar'); // ✅ Verificación adicional
+      // Usar cache si ya lo encontramos
+      if (!cachedFormulario) cachedFormulario = document.querySelector('#selJugadores');
+      if (!cachedDivContinuar) cachedDivContinuar = document.querySelector('#divContinuar');
+      
+      const formulario = cachedFormulario;
+      const divContinuar = cachedDivContinuar;
       const stillInSelection = document.querySelector('#tee-time') !== null;
       
-      // ✅ Verificación múltiple más robusta
-      if (formulario || (divContinuar && divContinuar.style.display !== 'none')) {
+      // ✅ VERIFICACIÓN CUÁDRUPLE (más robusta)
+      const carritoSelector = document.querySelector('#carritos_alquiler0');
+      const tituloReserva = document.body.innerText.includes('Reservar Tee Time') && !stillInSelection;
+      
+      if (formulario || 
+          (divContinuar && divContinuar.style.display !== 'none') ||
+          carritoSelector ||
+          tituloReserva) {
+        
         console.log(`✅ [${Date.now()}] ¡HORARIO CAPTURADO! (${checkCount} checks)`);
         
         attemptRecord.success = true;
@@ -507,21 +608,51 @@ await frame.evaluate((minHour, minMinute) => {
       }
       
       if (checkCount < maxChecks) {
-        setTimeout(rapidCheck, 10); // ✅ OPTIMIZADO: 10ms en lugar de 15ms
+        setTimeout(rapidCheck, 10);
       } else {
+        // 🔥 VALIDACIÓN #7: VERIFICAR QUE NO ES ERROR DE SERVIDOR
+        const serverError = document.body.innerText.match(/error|mantenimiento|no disponible/i);
+        const stillHasButtons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]').length > 0;
+        
+        if (serverError) {
+          console.log(`❌ ERROR DE SERVIDOR DETECTADO - DETENIENDO`);
+          window.__clickerActive = false;
+          window.__isVerifying = false;
+          window.__clickerResult = {
+            found: false,
+            error: 'SERVER_ERROR',
+            attempts: window.__clickAttempts.length,
+            allAttempts: window.__clickAttempts
+          };
+          return;
+        }
+        
+        if (!stillHasButtons) {
+          console.log(`⚠️ Ya no hay botones disponibles - Todos tomados`);
+          window.__clickerActive = false;
+          window.__isVerifying = false;
+          window.__clickerResult = {
+            found: false,
+            error: 'NO_BUTTONS',
+            attempts: window.__clickAttempts.length,
+            allAttempts: window.__clickAttempts
+          };
+          return;
+        }
+        
         console.log(`⚠️ [${Date.now()}] Click no funcionó (ocupado), probando siguiente...`);
         
         attemptRecord.success = false;
         attemptRecord.verificationTime = Date.now();
         attemptRecord.verificationDelay = Date.now() - captureTime;
         
+        window.__isVerifying = false;
+        
         const remainingSlots = validSlots.filter(s => 
           !window.__clickAttempts.some(a => a.text === s.text && !a.success)
         );
         
-        window.__isVerifying = false;
-        
-        if (remainingSlots.length > 0 || window.__clickAttempts.length < validSlots.length * 3) {
+        if (remainingSlots.length > 0 || window.__clickAttempts.length < validSlots.length * 4) {
           window.__clickerActive = true;
           requestAnimationFrame(window.__ultraPoll);
         } else {
@@ -538,7 +669,7 @@ await frame.evaluate((minHour, minMinute) => {
       }
     };
     
-    setTimeout(rapidCheck, 20); // ✅ CRÍTICO: Primer check a 20ms (balance óptimo)
+    setTimeout(rapidCheck, 15);
     
     return true;
   };
@@ -552,17 +683,81 @@ await frame.evaluate((minHour, minMinute) => {
     });
   }
   
-  console.log('✅ Código V11 COMPETITIVO inyectado');
+  console.log('✅ Código V14 ULTRA-DEFINITIVO inyectado');
+  console.log('   - Validaciones: 7 críticas activas');
+  console.log('   - Estrategia: Anti-competencia aleatoria');
+  console.log('   - Verificación: 50 checks (500ms)');
   
+  // ✅ RAF OPTIMIZADO con throttle
+  let lastRafTime = 0;
   window.__ultraPoll = () => {
     if (!window.__clickerActive) return;
-    window.__tryClick('RAF');
+    
+    const now = performance.now();
+    if (now - lastRafTime >= 8) { // 125fps
+      window.__tryClick('RAF');
+      lastRafTime = now;
+    }
+    
     requestAnimationFrame(window.__ultraPoll);
   };
   
 }, TURBO_CONFIG.MIN_HOUR, TURBO_CONFIG.MIN_MINUTE);
 
-console.log('✅ Clicker V11 COMPETITIVO PRE-INYECTADO\n');
+console.log('✅ Clicker V14 ULTRA-DEFINITIVO PRE-INYECTADO\n');
+
+// 🔍 DIAGNÓSTICO PRE-REFRESH CON DETECCIÓN DE CACHE VIEJO
+console.log('🔍 Diagnóstico pre-refresh...');
+const preRefreshDiag = await frame.evaluate(() => {
+  const container = document.querySelector('#tee-time');
+  const buttons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+  const refreshBtn = document.querySelector('a.refresh');
+  const statusText = document.body.innerText;
+  const status = statusText.match(/Reservar entre.*?\((ACTIVO|INACTIVO)\)/)?.[1] || 'N/A';
+  
+  return {
+    containerExists: container !== null,
+    buttonsCount: buttons.length,
+    refreshBtnExists: refreshBtn !== null,
+    refreshOnclick: refreshBtn?.getAttribute('onclick') || 'N/A',
+    status: status
+  };
+});
+
+console.log(`   Contenedor: ${preRefreshDiag.containerExists ? '✅' : '❌'}`);
+console.log(`   Botones: ${preRefreshDiag.buttonsCount}`);
+console.log(`   Refresh btn: ${preRefreshDiag.refreshBtnExists ? '✅' : '❌'}`);
+console.log(`   Estado: ${preRefreshDiag.status}`);
+
+// 🔥 DETECTAR CACHE VIEJO
+const now = new Date();
+const nowColombia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+const currentHour = nowColombia.getHours();
+const currentMinute = nowColombia.getMinutes();
+
+// Si estamos ANTES de 2 PM y dice ACTIVO = CACHE VIEJO
+if ((currentHour < 14 || (currentHour === 13 && currentMinute < 59)) && 
+    preRefreshDiag.status === 'ACTIVO') {
+  console.log('   ⚠️⚠️⚠️ ADVERTENCIA: Estado ACTIVO antes de 2 PM = CACHE VIEJO');
+  console.log('   🔥 Forzando limpieza TOTAL del cache...');
+  
+  await frame.evaluate(() => {
+    // Limpiar TODO
+    if ('caches' in window) {
+      caches.keys().then(names => names.forEach(name => caches.delete(name)));
+    }
+    
+    // Limpiar localStorage/sessionStorage
+    try { localStorage.clear(); } catch(e) {}
+    try { sessionStorage.clear(); } catch(e) {}
+    
+    console.log('✅ Cache limpiado forzadamente');
+  });
+  
+  console.log('   ✅ Limpieza completada, continuando...');
+}
+
+console.log('');
 
 // ⏰ ESPERAR HASTA 1:59:58 PM
 console.log('⏰ ESPERANDO HORA EXACTA (1:59:58 PM)...\n');
@@ -579,7 +774,7 @@ console.log('╚═════════════════════�
 const refreshStart = Date.now();
 console.log(`⏰ [${refreshStart}] Inicio refresh\n`);
 
-// CONFIGURAR Y EJECUTAR REFRESH CON SISTEMA ULTRA-AGRESIVO
+// 🔥 CONFIGURAR Y EJECUTAR REFRESH ANTI-CACHE CON VALIDACIÓN DE ESTADO
 const refreshTiming = await frame.evaluate(() => {
   const startTime = Date.now();
   const teeTimeContainer = document.querySelector('#tee-time');
@@ -593,8 +788,19 @@ const refreshTiming = await frame.evaluate(() => {
     const detectionTime = Date.now();
     const currentButtons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
     
+    // 🔥🔥🔥 VALIDACIÓN CRÍTICA: VERIFICAR ESTADO ACTIVO 🔥🔥🔥
+    const statusText = document.body.innerText;
+    const isActive = statusText.match(/\(ACTIVO\)/i);
+    
+    // Si hay botones pero NO está activo = CACHE VIEJO
+    if (currentButtons.length > 0 && !isActive) {
+      console.log(`⚠️ [${detectionTime}] Botones detectados pero estado INACTIVO - IGNORANDO (cache viejo)`);
+      return;  // ❌ NO ACTIVAR
+    }
+    
     console.log(`🎯 [${detectionTime}] ¡ACTIVANDO CLICKER!`);
     console.log(`   - Botones: ${currentButtons.length}`);
+    console.log(`   - Estado: ACTIVO ✅`);
     console.log(`   - Desde refresh: ${detectionTime - startTime}ms`);
     
     window.__clickerActive = true;
@@ -604,12 +810,21 @@ const refreshTiming = await frame.evaluate(() => {
     
     const freshContainer = document.querySelector('#tee-time');
     if (freshContainer && window.__observerInstance) {
-      window.__observerInstance.observe(freshContainer, {
-        childList: true,
-        subtree: true,
-        attributes: true
-      });
-      console.log(`   ✅ Observer ACTIVADO`);
+      // 🔥 DESCONECTAR ANTES DE RECONECTAR (evita duplicados)
+      try {
+        window.__observerInstance.disconnect();
+      } catch(e) {}
+      
+      try {
+        window.__observerInstance.observe(freshContainer, {
+          childList: true,
+          subtree: true,
+          attributes: true
+        });
+        console.log(`   ✅ Observer ACTIVADO y CONECTADO`);
+      } catch(e) {
+        console.log(`   ⚠️ Error al activar Observer: ${e.message}`);
+      }
     }
     
     requestAnimationFrame(window.__ultraPoll);
@@ -622,19 +837,28 @@ const refreshTiming = await frame.evaluate(() => {
     }
   };
   
-  // 🔥 OBSERVER ULTRA-SENSIBLE: detecta TODO tipo de cambios
   window.__activationObserver = new MutationObserver((mutations) => {
     if (window.__clickerActive) return;
     
     const currentButtons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
     
     if (currentButtons.length > 0) {
+      // 🔥🔥🔥 VALIDAR ESTADO ANTES DE ACTIVAR 🔥🔥🔥
+      const statusText = document.body.innerText;
+      const isActive = statusText.match(/\(ACTIVO\)/i);
+      
+      if (!isActive) {
+        console.log(`🔔 Observer: ${mutations.length} cambios pero INACTIVO - IGNORANDO`);
+        return;  // ❌ Cache viejo
+      }
+      
+      // 🔥 VALIDAR QUE HAY CAMBIO REAL (no solo mutaciones falsas)
       const hasChanged = currentButtons.length !== preRefreshButtonCount;
       const hasAttributeChanges = mutations.some(m => m.type === 'attributes');
       const hasMutations = mutations.length > 0;
       
-      if (hasChanged || hasAttributeChanges || hasMutations) {
-        console.log(`🔔 Observer: ${mutations.length} cambios detectados`);
+      if (hasChanged || (hasAttributeChanges && hasMutations)) {
+        console.log(`🔔 Observer: ${mutations.length} cambios detectados + ACTIVO ✅`);
         window.__activateClicker();
       }
     }
@@ -648,67 +872,82 @@ const refreshTiming = await frame.evaluate(() => {
     characterData: true
   });
   
-  console.log(`   ✅ Observer configurado (ultra-sensible)`);
+  console.log(`   ✅ Observer configurado (ultra-sensible + validación de estado)`);
   
-  // REFRESH
   const preClick = Date.now();
   const refreshBtn = document.querySelector("a.refresh");
   
   if (refreshBtn) {
     console.log(`   🖱️  REFRESH NOW!`);
+    console.log(`   🔧 Onclick: ${refreshBtn.getAttribute('onclick')}`);
+    
+    // ✅✅✅ CLICK CON ANTI-CACHE ✅✅✅
     refreshBtn.click();
+    
     const postClick = Date.now();
+    console.log(`   ✅ Click ejecutado: ${postClick - preClick}ms`);
     
-    console.log(`   ✅ Click: ${postClick - preClick}ms`);
-    
-    // 🔥 SISTEMA CUÁDRUPLE ULTRA-AGRESIVO (75ms/150ms/300ms/600ms/1200ms)
+    // 🔥 SISTEMA SÉXTUPLE HIPER-AGRESIVO CON VALIDACIÓN MEJORADA (50/100/200/400/800/1500ms)
     setTimeout(() => {
-      if (!window.__clickerActive) {
+      if (!window.__clickerActive && !window.__isVerifying) {
         const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        if (b.length > 0) {
-          console.log(`⚡⚡⚡⚡ [${Date.now()}] ULTRA-BACKUP 75ms: ${b.length} botones`);
+        const hasChanged = b.length !== preRefreshButtonCount;
+        console.log(`⚡⚡⚡⚡⚡ [${Date.now()}] ULTRA-BACKUP 50ms: ${b.length} botones (cambió: ${hasChanged})`);
+        if (b.length > 0 && (hasChanged || preRefreshButtonCount === 0)) {
           window.__activateClicker();
         }
       }
-    }, 75); // ✅ SÚPER RÁPIDO
+    }, 50);
     
     setTimeout(() => {
-      if (!window.__clickerActive) {
+      if (!window.__clickerActive && !window.__isVerifying) {
         const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        if (b.length > 0) {
-          console.log(`⚡⚡⚡ [${Date.now()}] BACKUP-1 150ms: ${b.length} botones`);
+        const hasChanged = b.length !== preRefreshButtonCount;
+        console.log(`⚡⚡⚡⚡ [${Date.now()}] BACKUP-1 100ms: ${b.length} botones (cambió: ${hasChanged})`);
+        if (b.length > 0 && (hasChanged || preRefreshButtonCount === 0)) {
           window.__activateClicker();
         }
       }
-    }, 150); // ✅ MUY RÁPIDO
+    }, 100);
     
     setTimeout(() => {
-      if (!window.__clickerActive) {
+      if (!window.__clickerActive && !window.__isVerifying) {
         const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        if (b.length > 0) {
-          console.log(`⚡⚡ [${Date.now()}] BACKUP-2 300ms: ${b.length} botones`);
+        const hasChanged = b.length !== preRefreshButtonCount;
+        console.log(`⚡⚡⚡ [${Date.now()}] BACKUP-2 200ms: ${b.length} botones (cambió: ${hasChanged})`);
+        if (b.length > 0 && (hasChanged || preRefreshButtonCount === 0)) {
           window.__activateClicker();
         }
       }
-    }, 300); // ✅ RÁPIDO
+    }, 200);
     
     setTimeout(() => {
-      if (!window.__clickerActive) {
+      if (!window.__clickerActive && !window.__isVerifying) {
         const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+        console.log(`⚡⚡ [${Date.now()}] BACKUP-3 400ms: ${b.length} botones`);
+        if (b.length > 0) window.__activateClicker();
+      }
+    }, 400);
+    
+    setTimeout(() => {
+      if (!window.__clickerActive && !window.__isVerifying) {
+        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+        console.log(`⚡ [${Date.now()}] BACKUP-4 800ms: ${b.length} botones`);
+        if (b.length > 0) window.__activateClicker();
+      }
+    }, 800);
+    
+    setTimeout(() => {
+      if (!window.__clickerActive && !window.__isVerifying) {
+        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+        console.log(`⚠️ [${Date.now()}] SAFETY 1500ms: ${b.length} botones`);
         if (b.length > 0) {
-          console.log(`⚡ [${Date.now()}] BACKUP-3 600ms: ${b.length} botones`);
           window.__activateClicker();
+        } else {
+          console.log(`   ❌ CRÍTICO: Horarios NO activados - Posible cache o servidor inactivo`);
         }
       }
-    }, 600); // ✅ SEGURIDAD
-    
-    setTimeout(() => {
-      if (!window.__clickerActive) {
-        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        console.log(`⚠️ [${Date.now()}] SAFETY 1200ms: ${b.length} botones`);
-        window.__activateClicker(); // ✅ ACTIVAR SIEMPRE
-      }
-    }, 1200); // ✅ ÚLTIMO RECURSO
+    }, 1500);
     
     return {
       started: startTime,
@@ -724,12 +963,12 @@ const refreshTiming = await frame.evaluate(() => {
 console.log(`✔️ Refresh ejecutado: ${refreshTiming.duration}ms`);
 console.log('⏳ Esperando captura de horario...\n');
 
-// MONITOREO
+// MONITOREO CON REACTIVACIÓN AUTOMÁTICA
 let clicked = false;
 let selectedTime = '';
 let clickTime = 0;
 let pollCount = 0;
-const maxWait = 15000; // ✅ Aumentado a 15 segundos para servidores lentos
+const maxWait = 15000;
 const pollStart = Date.now();
 
 console.log('📊 MONITOREANDO (15 segundos)...\n');
@@ -745,7 +984,7 @@ while (!clicked && (Date.now() - pollStart) < maxWait) {
       selectedTime = result.text;
       clickTime = result.timestamp;
       
-      const totalSpeed = clickTime - refreshStart;
+const totalSpeed = clickTime - refreshStart;
       
       console.log('\n╔════════════════════════════════════════════╗');
       console.log('║      💥 ¡HORARIO CAPTURADO! 💥            ║');
@@ -779,6 +1018,9 @@ while (!clicked && (Date.now() - pollStart) < maxWait) {
     } else if (result.attempts > 0) {
       console.log('\n⚠️  TODOS LOS HORARIOS OCUPADOS\n');
       console.log(`   Intentos: ${result.attempts}`);
+      if (result.error) {
+        console.log(`   Error: ${result.error}`);
+      }
       if (result.allAttempts) {
         result.allAttempts.forEach((a, i) => {
           console.log(`   ${i + 1}. ${a.text} - ${a.verificationDelay || 'N/A'}ms`);
@@ -789,8 +1031,7 @@ while (!clicked && (Date.now() - pollStart) < maxWait) {
     }
   }
 
-  // Logs cada ~1 segundo
-  if (pollCount % 100 === 0) { // ✅ Ajustado para polling de 10ms
+  if (pollCount % 100 === 0) {
     const elapsed = Date.now() - pollStart;
     const status = await frame.evaluate(() => ({
       calls: window.__rafCallCount,
@@ -800,13 +1041,35 @@ while (!clicked && (Date.now() - pollStart) < maxWait) {
       buttons: document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]').length,
       attempts: window.__clickAttempts?.length || 0
     }));
-    console.log(`⏳ ${(elapsed/1000).toFixed(1)}s | RAF: ${status.calls} | Botones: ${status.buttons} | Intentos: ${status.attempts} | Verificando: ${status.verifying ? 'SÍ' : 'NO'}`);
+    
+    console.log(`⏳ ${(elapsed/1000).toFixed(1)}s | RAF: ${status.calls} | Botones: ${status.buttons} | Intentos: ${status.attempts}`);
+    
+    // 🔥🔥🔥 DETECTAR DESACTIVACIÓN PREMATURA Y REACTIVAR 🔥🔥🔥
+    if (status.buttons > 0 && !status.active && !status.verifying && !result) {
+      console.log('⚠️⚠️⚠️ CLICKER DESACTIVADO PREMATURAMENTE - REACTIVANDO...');
+      
+      await frame.evaluate(() => {
+        // Validar estado antes de reactivar
+        const statusText = document.body.innerText;
+        const isActive = statusText.match(/\(ACTIVO\)/i);
+        
+        if (isActive) {
+          window.__clickerActive = true;
+          window.__isVerifying = false;
+          window.__rafStartTime = Date.now();
+          requestAnimationFrame(window.__ultraPoll);
+          window.__tryClick('ManualReactivation');
+          console.log('✅ Clicker REACTIVADO');
+        } else {
+          console.log('⚠️ No se reactivó: estado INACTIVO');
+        }
+      });
+    }
   }
 
-  await new Promise(resolve => setTimeout(resolve, 10)); // ✅ OPTIMIZADO: 10ms
+  await new Promise(resolve => setTimeout(resolve, 10));
 }
 
-// Limpiar
 await frame.evaluate(() => {
   window.__clickerActive = false;
   window.__isVerifying = false;
@@ -827,13 +1090,15 @@ if (!clicked) {
       activationDetected: window.__activationDetected,
       buttonsCount: buttons.length,
       attempts: window.__clickAttempts?.length || 0,
-      allAttempts: window.__clickAttempts || []
+      allAttempts: window.__clickAttempts || [],
+      htmlSample: document.body.innerText.substring(0, 1000)
     };
   });
   
   console.log(`   Estado: ${finalStatus.status}`);
   console.log(`   Botones: ${finalStatus.buttonsCount}`);
   console.log(`   Intentos: ${finalStatus.attempts}`);
+  console.log(`   Activación: ${finalStatus.activationDetected ? 'SÍ' : 'NO'}`);
   
   if (finalStatus.attempts > 0) {
     console.log('   Horarios intentados:');
