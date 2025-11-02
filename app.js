@@ -20,7 +20,7 @@ const TURBO_CONFIG = {
   MIN_MINUTE: MIN_MINUTE,
   REFRESH_HOUR: 13,        // 1:59:59 PM
   REFRESH_MINUTE: 59,
-  REFRESH_SECOND: 59,
+  REFRESH_SECOND: 58,
   ACTIVATION_DELAY: 800    // Tiempo que tarda el refresh en cargar (ajustable)
 };
 
@@ -258,7 +258,7 @@ async function startSpeedTest() {
     
     console.log('✔️ Tabla OK\n');
 
-    console.log(`📆 Buscando día: ${tomorrow.fullDate}...`);
+console.log(`📆 Buscando día: ${tomorrow.fullDate}...`);
     
     const dayInfo = await frame.evaluate((targetFullDate) => {
       const table = document.querySelector('table.mitabla');
@@ -302,226 +302,547 @@ async function startSpeedTest() {
       await new Promise(() => {});
     }
 
-    console.log(`✅ Día encontrado: ${dayInfo.dayText}`);
+console.log(`✅ Día encontrado: ${dayInfo.dayText}`);
+
+await frame.evaluate(oc => {
+  try { eval(oc); } catch(e) {}
+}, dayInfo.onclick);
+console.log('✔️ Click ejecutado');
+
+// 🚀 Verificar que el contenedor de horarios existe
+console.log('⚡ Verificando contenedor de horarios...');
+
+await frame.waitForSelector('#tee-time', { timeout: 20000 }).catch(() => {
+  console.log('❌ No se encontró el contenedor de horarios');
+  throw new Error('Contenedor #tee-time no encontrado');
+});
+console.log('✔️ Contenedor listo\n');
+
+// 🚀 PRE-INYECCIÓN ANTES DE ESPERAR
+console.log('╔════════════════════════════════════════════╗');
+console.log('║  🚀 BOT LISTO - ESPERANDO 1:59:58 PM  🚀 ║');
+console.log('╚════════════════════════════════════════════╝\n');
+
+console.log('🚀 PRE-INYECTANDO Ultra-Speed Clicker V11 COMPETITIVO...');
+
+await frame.evaluate((minHour, minMinute) => {
+  window.__clickerActive = false;
+  window.__clickerResult = null;
+  window.__rafStartTime = 0;
+  window.__rafCallCount = 0;
+  window.__firstDetectionLogged = false;
+  window.__detectionMethod = null;
+  window.__buttonHistory = [];
+  window.__activationDetected = false;
+  window.__clickAttempts = [];
+  window.__isVerifying = false; // ✅ NUEVO: Evita clicks duplicados durante verificación
+  
+  const MIN_TIME_MINUTES = minHour * 60 + minMinute;
+  
+  // 🔥 PRE-CACHEO para velocidad máxima
+  let cachedContainer = document.querySelector('#tee-time');
+  
+  window.__tryClick = (caller = 'unknown') => {
+    if (!window.__clickerActive || window.__isVerifying) return false;
     
-    await frame.evaluate(oc => {
-      try { eval(oc); } catch(e) {}
-    }, dayInfo.onclick);
-
-    console.log('✔️ Click ejecutado');
-    await sleep(10000);
-
-    console.log('⏳ Cargando horarios...');
-    await frame.waitForSelector('#tee-time', { timeout: 60000 });
-    console.log('✔️ Horarios cargados\n');
-
-console.log('✔️ Horarios cargados\n');
-
-    // 🔥🔥🔥 ESTRATEGIA ULTRA-OPTIMIZADA: PRE-INYECCIÓN
-    console.log('╔════════════════════════════════════════════╗');
-    console.log('║  🎯 PRE-INYECCIÓN ULTRA-RÁPIDA 🎯         ║');
-    console.log('╚════════════════════════════════════════════╝\n');
-    console.log('📍 Estrategia optimizada:');
-    console.log('   1. PRE-INYECTAR clicker (ANTES de esperar)');
-    console.log('   2. Esperar hasta 1:59:59 PM exacto');
-    console.log('   3. ACTIVAR + REFRESH instantáneo (<10ms)');
-    console.log('   4. Detectar horarios en <5ms');
-    console.log('   5. Click INMEDIATO\n');
-
-    // 🚀 PASO 1: PRE-INYECCIÓN ULTRA-OPTIMIZADA
-    console.log('🚀 PRE-INYECTANDO Ultra-Speed Clicker...');
+    window.__rafCallCount++;
     
-    await frame.evaluate((minHour, minMinute) => {
-      window.__clickerActive = false;
-      window.__clickerResult = null;
+    // Usar cache si existe, sino buscar
+    if (!cachedContainer) cachedContainer = document.querySelector('#tee-time');
+    const buttons = cachedContainer?.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]') || [];
+    
+    if (window.__rafCallCount % 50 === 0) {
+      console.log(`🔍 [${Date.now()}] RAF #${window.__rafCallCount} | Botones: ${buttons.length}`);
+    }
+    
+    if (buttons.length > 0 && !window.__firstDetectionLogged) {
+      console.log(`🎯 [${Date.now()}] ¡HORARIOS ACTIVADOS! ${buttons.length} botones`);
+      console.log(`   - Detectado por: ${caller}`);
+      console.log(`   - Tiempo: ${Date.now() - window.__rafStartTime}ms`);
+      window.__firstDetectionLogged = true;
+      window.__detectionMethod = caller;
+      window.__activationDetected = true;
       
-      const MIN_TIME_MINUTES = minHour * 60 + minMinute;
-      const teeTimeContainer = document.querySelector('#tee-time');
-      
-      // Función ultra-optimizada con selector cacheado
-      window.__tryClick = () => {
-        if (!window.__clickerActive) return false;
-        
-        const buttons = teeTimeContainer ? 
-          teeTimeContainer.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]') : [];
-          
-        if (buttons.length === 0) return false;
-
-        for (let i = 0; i < buttons.length; i++) {
-          const div = buttons[i].querySelector('div');
-          if (!div) continue;
-          
-          const text = div.innerText;
-          const match = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
-          if (!match) continue;
-          
-          let h = parseInt(match[1]);
-          const m = parseInt(match[2]);
-          const p = match[3].toLowerCase();
-          
-          if (p === 'pm' && h !== 12) h += 12;
-          else if (p === 'am' && h === 12) h = 0;
-          
-          if ((h * 60 + m) >= MIN_TIME_MINUTES) {
-            buttons[i].click();
-            window.__clickerResult = {
-              found: true,
-              text: text.trim(),
-              count: buttons.length,
-              timestamp: Date.now()
-            };
-            window.__clickerActive = false;
-            if (window.__observerInstance) window.__observerInstance.disconnect();
-            if (window.__intervalInstance) clearInterval(window.__intervalInstance);
-            window.__rafActive = false;
-            return true;
-          }
-        }
-        return false;
-      };
-
-      // Observer pre-configurado
-      if (teeTimeContainer) {
-        window.__observer = new MutationObserver(() => {
-          if (window.__clickerActive) window.__tryClick();
-        });
-        window.__observerInstance = window.__observer;
-      }
-
-      // RAF pre-configurado
-      window.__rafActive = false;
-      window.__animationLoop = () => {
-        if (!window.__rafActive || !window.__clickerActive) return;
-        if (window.__tryClick()) return;
-        requestAnimationFrame(window.__animationLoop);
-      };
-
-      // Interceptor AJAX (detecta ANTES del DOM)
-      const originalOpen = XMLHttpRequest.prototype.open;
-      XMLHttpRequest.prototype.open = function() {
-        this.addEventListener('readystatechange', function() {
-          if (this.readyState === 4 && window.__clickerActive) {
-            setTimeout(() => window.__tryClick(), 0);
-          }
-        });
-        return originalOpen.apply(this, arguments);
-      };
-      
-    }, TURBO_CONFIG.MIN_HOUR, TURBO_CONFIG.MIN_MINUTE);
+      window.__buttonHistory = Array.from(buttons).map(btn => {
+        const div = btn.querySelector('div');
+        return div ? div.innerText.trim() : 'N/A';
+      });
+      console.log(`   - Horarios:`, window.__buttonHistory);
+    }
     
-    console.log('✅ Clicker PRE-INYECTADO (inactivo)\n');
+    if (buttons.length === 0) return false;
 
-    //🕐 PASO 2: ESPERAR HASTA 1:59:59 PM
-    console.log('🕐 Esperando hasta 1:59:59 PM...\n');
-    await waitUntilExactTime(
-      TURBO_CONFIG.REFRESH_HOUR, 
-      TURBO_CONFIG.REFRESH_MINUTE, 
-      TURBO_CONFIG.REFRESH_SECOND
-    );
+    const validSlots = [];
     
-    console.log('⚡ ¡ES 1:59:59 PM! ACTIVACIÓN INSTANTÁNEA...\n');
-    
-    const refreshStart = Date.now();
-
-    // 🔥 PASO 3: TODO EN UNA EJECUCIÓN (MÁXIMA VELOCIDAD)
-    await frame.evaluate(() => {
-      window.__clickerActive = true;
+    for (let i = 0; i < buttons.length; i++) {
+      const div = buttons[i].querySelector('div');
+      if (!div) continue;
       
-      const teeTimeContainer = document.querySelector('#tee-time');
-      if (teeTimeContainer && window.__observerInstance) {
-        window.__observerInstance.observe(teeTimeContainer, {
-          childList: true,
-          subtree: true,
-          attributes: true,
-          attributeFilter: ['style', 'class']
+      const text = div.innerText;
+      const match = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
+      if (!match) continue;
+      
+      let h = parseInt(match[1]);
+      const m = parseInt(match[2]);
+      const p = match[3].toLowerCase();
+      
+      if (p === 'pm' && h !== 12) h += 12;
+      else if (p === 'am' && h === 12) h = 0;
+      
+      const totalMinutes = h * 60 + m;
+      
+      if (totalMinutes >= MIN_TIME_MINUTES) {
+        validSlots.push({
+          index: i,
+          button: buttons[i],
+          text: text.trim(),
+          totalMinutes: totalMinutes
         });
       }
-      
-      window.__rafActive = true;
-      requestAnimationFrame(window.__animationLoop);
-      
-      window.__intervalInstance = setInterval(() => {
-        if (window.__clickerActive) window.__tryClick();
-      }, 0);
-      
-      // Hacer refresh
-      const refreshBtn = document.querySelector("a.refresh");
-      if (refreshBtn) refreshBtn.click();
-      
-      // Try inmediato
-      setTimeout(() => window.__tryClick(), 0);
-    });
+    }
     
-    const refreshTime = Date.now();
-    console.log(`✔️ Activación total: ${refreshTime - refreshStart}ms`);
-    console.log('⏳ Detectando horarios nuevos...\n');
-
-    // 👀 PASO 4: MONITOREO ULTRA-RÁPIDO
-    let clicked = false;
-    let selectedTime = '';
-    let clickTime = 0;
-    let pollCount = 0;
-    const maxWait = 10000;
-    const pollStart = Date.now();
-
-    while (!clicked && (Date.now() - pollStart) < maxWait) {
-      pollCount++;
-      
-      const result = await frame.evaluate(() => window.__clickerResult);
-      
-      if (result && result.found) {
-        clicked = true;
-        selectedTime = result.text;
-        clickTime = result.timestamp;
-        
-        const captureSpeed = clickTime - refreshStart;
-        const detectionSpeed = clickTime - refreshTime;
-        
-        console.log('╔════════════════════════════════════════════╗');
-        console.log('║      💥 ¡HORARIO CAPTURADO! 💥            ║');
-        console.log('╚════════════════════════════════════════════╝\n');
-        console.log(`⚡ VELOCIDAD ULTRA-PRECISA:`);
-        console.log(`   - Desde activación: ${captureSpeed}ms`);
-        console.log(`   - Detección pura: ${detectionSpeed}ms`);
-        console.log(`   - Tiempo total: ${(captureSpeed / 1000).toFixed(3)}s\n`);
-        console.log(`📅 Día: ${dayInfo.dayText}`);
-        console.log(`⏰ Horario: ${result.text}`);
-        console.log(`📊 Total slots: ${result.count}\n`);
-        
+    if (validSlots.length === 0) return false;
+    
+    let slotToTry = null;
+    
+    for (let slot of validSlots) {
+      const alreadyTried = window.__clickAttempts.some(a => a.text === slot.text && !a.success);
+      if (!alreadyTried) {
+        slotToTry = slot;
         break;
       }
-
-      if (pollCount === 1) {
-        console.log('🔥 Cuádruple detección activa (Observer+RAF+Interval+AJAX)');
-      }
-
-      if (pollCount % 1000 === 0) {
-        const elapsed = Date.now() - pollStart;
-        console.log(`⏳ ${elapsed}ms | Buscando horarios...`);
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 0));
     }
+    
+    if (!slotToTry) {
+      const failedAttempts = window.__clickAttempts.filter(a => !a.success);
+      if (failedAttempts.length >= validSlots.length * 3) { // ✅ 3 rondas en lugar de 2
+        console.log(`❌ [${Date.now()}] Todos ocupados después de 3 rondas`);
+        window.__clickerActive = false;
+        window.__clickerResult = {
+          found: false,
+          attempts: window.__clickAttempts.length,
+          allAttempts: window.__clickAttempts,
+          allButtons: window.__buttonHistory
+        };
+        return false;
+      }
+      console.log(`⚠️ [${Date.now()}] Reintentando ronda ${Math.floor(failedAttempts.length / validSlots.length) + 1}...`);
+      slotToTry = validSlots[failedAttempts.length % validSlots.length];
+    }
+    
+    const captureTime = Date.now();
+    const rafElapsed = captureTime - window.__rafStartTime;
+    
+    console.log(`✅ [${captureTime}] ¡INTENTANDO HORARIO!`);
+    console.log(`   - Horario: ${slotToTry.text}`);
+    console.log(`   - Intento: ${window.__clickAttempts.length + 1}`);
+    console.log(`   - Capturado por: ${caller}`);
+    console.log(`   - Tiempo: ${rafElapsed}ms`);
+    
+    const attemptRecord = {
+      text: slotToTry.text,
+      timestamp: captureTime,
+      caller: caller,
+      success: false,
+      totalSlots: buttons.length,
+      verificationChecks: 0
+    };
+    window.__clickAttempts.push(attemptRecord);
+    
+    // ✅ MARCAR COMO EN VERIFICACIÓN
+    window.__isVerifying = true;
+    
+    slotToTry.button.click();
+    
+    let checkCount = 0;
+    const maxChecks = 25; // ✅ Aumentado a 25 checks (250ms máximo)
+    
+    const rapidCheck = () => {
+      checkCount++;
+      attemptRecord.verificationChecks = checkCount;
+      
+      const formulario = document.querySelector('#selJugadores');
+      const divContinuar = document.querySelector('#divContinuar'); // ✅ Verificación adicional
+      const stillInSelection = document.querySelector('#tee-time') !== null;
+      
+      // ✅ Verificación múltiple más robusta
+      if (formulario || (divContinuar && divContinuar.style.display !== 'none')) {
+        console.log(`✅ [${Date.now()}] ¡HORARIO CAPTURADO! (${checkCount} checks)`);
+        
+        attemptRecord.success = true;
+        attemptRecord.verificationTime = Date.now();
+        attemptRecord.verificationDelay = Date.now() - captureTime;
+        
+        window.__clickerActive = false;
+        window.__isVerifying = false;
+        window.__clickerResult = {
+          found: true,
+          text: slotToTry.text,
+          count: buttons.length,
+          timestamp: captureTime,
+          rafCalls: window.__rafCallCount,
+          rafElapsed: rafElapsed,
+          detectionMethod: window.__detectionMethod,
+          captureMethod: caller,
+          allButtons: window.__buttonHistory,
+          activationDetected: window.__activationDetected,
+          attempts: window.__clickAttempts.length,
+          allAttempts: window.__clickAttempts,
+          verificationDelay: attemptRecord.verificationDelay,
+          verificationChecks: checkCount
+        };
+        
+        if (window.__observerInstance) window.__observerInstance.disconnect();
+        if (window.__activationObserver) window.__activationObserver.disconnect();
+        
+        return;
+      }
+      
+      if (!stillInSelection) {
+        console.log(`⚠️ [${Date.now()}] Estado inesperado después de click`);
+        window.__isVerifying = false;
+        window.__clickerActive = true;
+        requestAnimationFrame(window.__ultraPoll);
+        return;
+      }
+      
+      if (checkCount < maxChecks) {
+        setTimeout(rapidCheck, 10); // ✅ OPTIMIZADO: 10ms en lugar de 15ms
+      } else {
+        console.log(`⚠️ [${Date.now()}] Click no funcionó (ocupado), probando siguiente...`);
+        
+        attemptRecord.success = false;
+        attemptRecord.verificationTime = Date.now();
+        attemptRecord.verificationDelay = Date.now() - captureTime;
+        
+        const remainingSlots = validSlots.filter(s => 
+          !window.__clickAttempts.some(a => a.text === s.text && !a.success)
+        );
+        
+        window.__isVerifying = false;
+        
+        if (remainingSlots.length > 0 || window.__clickAttempts.length < validSlots.length * 3) {
+          window.__clickerActive = true;
+          requestAnimationFrame(window.__ultraPoll);
+        } else {
+          console.log(`❌ [${Date.now()}] No hay más horarios para intentar`);
+          window.__clickerActive = false;
+          
+          window.__clickerResult = {
+            found: false,
+            attempts: window.__clickAttempts.length,
+            allAttempts: window.__clickAttempts,
+            allButtons: window.__buttonHistory
+          };
+        }
+      }
+    };
+    
+    setTimeout(rapidCheck, 20); // ✅ CRÍTICO: Primer check a 20ms (balance óptimo)
+    
+    return true;
+  };
 
-    // Limpiar
-    await frame.evaluate(() => {
-      window.__clickerActive = false;
-      window.__rafActive = false;
-      if (window.__observerInstance) window.__observerInstance.disconnect();
-      if (window.__intervalInstance) clearInterval(window.__intervalInstance);
+  const teeTimeContainer = document.querySelector('#tee-time');
+  if (teeTimeContainer) {
+    window.__observerInstance = new MutationObserver((mutations) => {
+      if (window.__clickerActive && !window.__isVerifying) {
+        window.__tryClick('Observer');
+      }
     });
-
-    if (!clicked) {
-      console.log('\n⚠️  No se capturó horario en 10 segundos');
-      console.log('   Posibles causas:');
-      console.log('   - No hay horarios disponibles >= ' + MIN_HOUR + ':' + MIN_MINUTE);
-      console.log('   - Todos los horarios fueron tomados instantáneamente');
-      console.log('   - Error en la carga del refresh');
-      console.log('⏳ Navegador permanece abierto para inspección.');
-      await new Promise(() => {});
-    }
-
+  }
   
+  console.log('✅ Código V11 COMPETITIVO inyectado');
+  
+  window.__ultraPoll = () => {
+    if (!window.__clickerActive) return;
+    window.__tryClick('RAF');
+    requestAnimationFrame(window.__ultraPoll);
+  };
+  
+}, TURBO_CONFIG.MIN_HOUR, TURBO_CONFIG.MIN_MINUTE);
+
+console.log('✅ Clicker V11 COMPETITIVO PRE-INYECTADO\n');
+
+// ⏰ ESPERAR HASTA 1:59:58 PM
+console.log('⏰ ESPERANDO HORA EXACTA (1:59:58 PM)...\n');
+await waitUntilExactTime(
+  TURBO_CONFIG.REFRESH_HOUR,
+  TURBO_CONFIG.REFRESH_MINUTE,
+  TURBO_CONFIG.REFRESH_SECOND
+);
+
+console.log('╔════════════════════════════════════════════╗');
+console.log('║      🔥 ¡HORA EXACTA! EJECUTANDO 🔥       ║');
+console.log('╚════════════════════════════════════════════╝\n');
+
+const refreshStart = Date.now();
+console.log(`⏰ [${refreshStart}] Inicio refresh\n`);
+
+// CONFIGURAR Y EJECUTAR REFRESH CON SISTEMA ULTRA-AGRESIVO
+const refreshTiming = await frame.evaluate(() => {
+  const startTime = Date.now();
+  const teeTimeContainer = document.querySelector('#tee-time');
+  const preRefreshButtonCount = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]').length;
+  
+  console.log(`📊 Pre-refresh: ${preRefreshButtonCount} botones`);
+  
+  window.__activateClicker = () => {
+    if (window.__clickerActive) return;
+    
+    const detectionTime = Date.now();
+    const currentButtons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    
+    console.log(`🎯 [${detectionTime}] ¡ACTIVANDO CLICKER!`);
+    console.log(`   - Botones: ${currentButtons.length}`);
+    console.log(`   - Desde refresh: ${detectionTime - startTime}ms`);
+    
+    window.__clickerActive = true;
+    window.__rafStartTime = detectionTime;
+    window.__activationDetected = true;
+    window.__isVerifying = false;
+    
+    const freshContainer = document.querySelector('#tee-time');
+    if (freshContainer && window.__observerInstance) {
+      window.__observerInstance.observe(freshContainer, {
+        childList: true,
+        subtree: true,
+        attributes: true
+      });
+      console.log(`   ✅ Observer ACTIVADO`);
+    }
+    
+    requestAnimationFrame(window.__ultraPoll);
+    console.log(`   ✅ RAF ACTIVADO`);
+    
+    window.__tryClick('InitialActivation');
+    
+    if (window.__activationObserver) {
+      window.__activationObserver.disconnect();
+    }
+  };
+  
+  // 🔥 OBSERVER ULTRA-SENSIBLE: detecta TODO tipo de cambios
+  window.__activationObserver = new MutationObserver((mutations) => {
+    if (window.__clickerActive) return;
+    
+    const currentButtons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    
+    if (currentButtons.length > 0) {
+      const hasChanged = currentButtons.length !== preRefreshButtonCount;
+      const hasAttributeChanges = mutations.some(m => m.type === 'attributes');
+      const hasMutations = mutations.length > 0;
+      
+      if (hasChanged || hasAttributeChanges || hasMutations) {
+        console.log(`🔔 Observer: ${mutations.length} cambios detectados`);
+        window.__activateClicker();
+      }
+    }
+  });
+  
+  window.__activationObserver.observe(teeTimeContainer, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'style', 'onclick'],
+    characterData: true
+  });
+  
+  console.log(`   ✅ Observer configurado (ultra-sensible)`);
+  
+  // REFRESH
+  const preClick = Date.now();
+  const refreshBtn = document.querySelector("a.refresh");
+  
+  if (refreshBtn) {
+    console.log(`   🖱️  REFRESH NOW!`);
+    refreshBtn.click();
+    const postClick = Date.now();
+    
+    console.log(`   ✅ Click: ${postClick - preClick}ms`);
+    
+    // 🔥 SISTEMA CUÁDRUPLE ULTRA-AGRESIVO (75ms/150ms/300ms/600ms/1200ms)
+    setTimeout(() => {
+      if (!window.__clickerActive) {
+        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+        if (b.length > 0) {
+          console.log(`⚡⚡⚡⚡ [${Date.now()}] ULTRA-BACKUP 75ms: ${b.length} botones`);
+          window.__activateClicker();
+        }
+      }
+    }, 75); // ✅ SÚPER RÁPIDO
+    
+    setTimeout(() => {
+      if (!window.__clickerActive) {
+        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+        if (b.length > 0) {
+          console.log(`⚡⚡⚡ [${Date.now()}] BACKUP-1 150ms: ${b.length} botones`);
+          window.__activateClicker();
+        }
+      }
+    }, 150); // ✅ MUY RÁPIDO
+    
+    setTimeout(() => {
+      if (!window.__clickerActive) {
+        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+        if (b.length > 0) {
+          console.log(`⚡⚡ [${Date.now()}] BACKUP-2 300ms: ${b.length} botones`);
+          window.__activateClicker();
+        }
+      }
+    }, 300); // ✅ RÁPIDO
+    
+    setTimeout(() => {
+      if (!window.__clickerActive) {
+        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+        if (b.length > 0) {
+          console.log(`⚡ [${Date.now()}] BACKUP-3 600ms: ${b.length} botones`);
+          window.__activateClicker();
+        }
+      }
+    }, 600); // ✅ SEGURIDAD
+    
+    setTimeout(() => {
+      if (!window.__clickerActive) {
+        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+        console.log(`⚠️ [${Date.now()}] SAFETY 1200ms: ${b.length} botones`);
+        window.__activateClicker(); // ✅ ACTIVAR SIEMPRE
+      }
+    }, 1200); // ✅ ÚLTIMO RECURSO
+    
+    return {
+      started: startTime,
+      clicked: postClick,
+      duration: postClick - preClick,
+      preRefreshButtons: preRefreshButtonCount
+    };
+  }
+  
+  return null;
+});
+
+console.log(`✔️ Refresh ejecutado: ${refreshTiming.duration}ms`);
+console.log('⏳ Esperando captura de horario...\n');
+
+// MONITOREO
+let clicked = false;
+let selectedTime = '';
+let clickTime = 0;
+let pollCount = 0;
+const maxWait = 15000; // ✅ Aumentado a 15 segundos para servidores lentos
+const pollStart = Date.now();
+
+console.log('📊 MONITOREANDO (15 segundos)...\n');
+
+while (!clicked && (Date.now() - pollStart) < maxWait) {
+  pollCount++;
+  
+  const result = await frame.evaluate(() => window.__clickerResult);
+  
+  if (result) {
+    if (result.found) {
+      clicked = true;
+      selectedTime = result.text;
+      clickTime = result.timestamp;
+      
+      const totalSpeed = clickTime - refreshStart;
+      
+      console.log('\n╔════════════════════════════════════════════╗');
+      console.log('║      💥 ¡HORARIO CAPTURADO! 💥            ║');
+      console.log('╚════════════════════════════════════════════╝\n');
+      console.log(`⚡ VELOCIDAD:`);
+      console.log(`   - Total: ${totalSpeed}ms (${(totalSpeed / 1000).toFixed(3)}s)`);
+      console.log(`   - Verificación: ${result.verificationDelay}ms (${result.verificationChecks} checks)`);
+      console.log(`   - Refresh: ${refreshTiming.duration}ms\n`);
+      
+      console.log(`🔬 DETALLE:`);
+      console.log(`   - Activación: ${result.activationDetected ? '✅' : '❌'}`);
+      console.log(`   - Detección: ${result.detectionMethod}`);
+      console.log(`   - Captura: ${result.captureMethod}`);
+      console.log(`   - Intentos: ${result.attempts}`);
+      console.log(`   - RAF: ${result.rafCalls} llamadas\n`);
+      
+      if (result.allAttempts && result.allAttempts.length > 1) {
+        console.log(`🔄 INTENTOS:`);
+        result.allAttempts.forEach((a, i) => {
+          console.log(`   ${i + 1}. ${a.text} - ${a.success ? '✅' : '❌'} - ${a.verificationDelay || 'N/A'}ms`);
+        });
+        console.log('');
+      }
+      
+      console.log(`📅 Día: ${dayInfo.dayText}`);
+      console.log(`⏰ Horario: ${result.text}`);
+      console.log(`📊 Slots: ${result.count}`);
+      console.log('');
+      
+      break;
+    } else if (result.attempts > 0) {
+      console.log('\n⚠️  TODOS LOS HORARIOS OCUPADOS\n');
+      console.log(`   Intentos: ${result.attempts}`);
+      if (result.allAttempts) {
+        result.allAttempts.forEach((a, i) => {
+          console.log(`   ${i + 1}. ${a.text} - ${a.verificationDelay || 'N/A'}ms`);
+        });
+      }
+      clicked = true;
+      break;
+    }
+  }
+
+  // Logs cada ~1 segundo
+  if (pollCount % 100 === 0) { // ✅ Ajustado para polling de 10ms
+    const elapsed = Date.now() - pollStart;
+    const status = await frame.evaluate(() => ({
+      calls: window.__rafCallCount,
+      active: window.__clickerActive,
+      verifying: window.__isVerifying,
+      activation: window.__activationDetected,
+      buttons: document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]').length,
+      attempts: window.__clickAttempts?.length || 0
+    }));
+    console.log(`⏳ ${(elapsed/1000).toFixed(1)}s | RAF: ${status.calls} | Botones: ${status.buttons} | Intentos: ${status.attempts} | Verificando: ${status.verifying ? 'SÍ' : 'NO'}`);
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 10)); // ✅ OPTIMIZADO: 10ms
+}
+
+// Limpiar
+await frame.evaluate(() => {
+  window.__clickerActive = false;
+  window.__isVerifying = false;
+  if (window.__observerInstance) window.__observerInstance.disconnect();
+  if (window.__activationObserver) window.__activationObserver.disconnect();
+});
+
+if (!clicked) {
+  console.log('\n⚠️  NO SE CAPTURÓ HORARIO\n');
+  
+  const finalStatus = await frame.evaluate(() => {
+    const buttons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    const statusText = document.body.innerText;
+    const status = statusText.match(/Reservar entre.*?\((ACTIVO|INACTIVO)\)/)?.[1] || 'N/A';
+    
+    return {
+      status: status,
+      activationDetected: window.__activationDetected,
+      buttonsCount: buttons.length,
+      attempts: window.__clickAttempts?.length || 0,
+      allAttempts: window.__clickAttempts || []
+    };
+  });
+  
+  console.log(`   Estado: ${finalStatus.status}`);
+  console.log(`   Botones: ${finalStatus.buttonsCount}`);
+  console.log(`   Intentos: ${finalStatus.attempts}`);
+  
+  if (finalStatus.attempts > 0) {
+    console.log('   Horarios intentados:');
+    finalStatus.allAttempts.forEach(a => console.log(`      - ${a.text}`));
+  }
+  
+  console.log('\n⏳ Navegador abierto para inspección.');
+  await new Promise(() => {});
+}
     // ========== FORMULARIO ==========
     console.log('📝 Llenando formulario...\n');
     await sleep(5000);
@@ -752,9 +1073,7 @@ console.log('✔️ Horarios cargados\n');
       console.log('✔️ Finalizado\n');
       await sleep(4000);
     }
-
-    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-    const realCaptureTime = clickTime ? ((clickTime - refreshStart) / 1000).toFixed(3) : '0';
+const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
     
     console.log('╔════════════════════════════════════════════╗');
     console.log('║   🔥 ¡PROCESO COMPLETADO! 🔥              ║');
@@ -762,9 +1081,7 @@ console.log('✔️ Horarios cargados\n');
     console.log(`📅 Día: ${dayInfo.dayText}`);
     console.log(`⏰ Horario: ${selectedTime}`);
     console.log(`👥 Socios: ${CODIGOS_SOCIOS.join(', ')}\n`);
-    console.log(`⚡ TIEMPOS FINALES:`);
-    console.log(`   - Captura desde 1:59:59 PM: ${realCaptureTime}s`);
-    console.log(`   - Proceso total: ${totalTime}s\n`);
+    console.log(`⏱️  TIEMPO TOTAL: ${totalTime}s\n`);
 
     console.log('✅ ¡RESERVA COMPLETADA CON ÉXITO!');
     console.log('⏳ Navegador permanece abierto. Presiona Ctrl+C para detener.');
