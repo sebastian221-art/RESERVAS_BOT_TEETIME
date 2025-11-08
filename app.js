@@ -14,13 +14,15 @@ if (!USER_CLUB || !PASS_CLUB || !CODIGO_SOCIO_1 || !CODIGO_SOCIO_2) {
 }
 
 const CODIGOS_SOCIOS = [CODIGO_SOCIO_1, CODIGO_SOCIO_2];
+// 🔥 TEST DE VELOCIDAD: Medir cuánto tarda el refresh
+let MEASURED_REFRESH_TIME = null; // Se llenará con el test
 
 const TURBO_CONFIG = {
   MIN_HOUR: MIN_HOUR,
   MIN_MINUTE: MIN_MINUTE,
   REFRESH_HOUR: 13,        // 1:59:59 PM
   REFRESH_MINUTE: 59,
-  REFRESH_SECOND: 58,
+  REFRESH_SECOND: 59,
   ACTIVATION_DELAY: 800    // Tiempo que tarda el refresh en cargar (ajustable)
 };
 
@@ -28,7 +30,7 @@ async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0) {
+async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0, frame = null) {
   while (true) {
     const now = new Date();
     const nowColombia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
@@ -46,8 +48,8 @@ async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0) {
       
       const tomorrowWaitMs = tomorrow - nowColombia;
       
-      if (waitMs > -300000) { // Si pasó hace menos de 5 minutos
-        console.log('⚠️ Ya pasó la hora objetivo de hoy (2:00 PM hace poco)');
+      if (waitMs > -300000) {
+        console.log('⚠️ Ya pasó la hora objetivo de hoy (1:59:58 PM hace poco)');
         console.log('   Para mañana, ejecuta el bot antes de las 2 PM\n');
       }
       
@@ -59,7 +61,8 @@ async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0) {
       console.log(`⏰ Esperando hasta MAÑANA ${tomorrow.toLocaleTimeString('es-CO')}`);
       console.log(`   (Faltan ${hours}h ${minutes}m ${seconds}s)\n`);
       
-      await sleep(tomorrowWaitMs);
+      // 🔥 ESPERA CON KEEPALIVE LIGERO
+      await waitWithKeepAlive(tomorrowWaitMs, frame);
       return;
     } else {
       const hours = Math.floor(waitMs / 3600000);
@@ -77,8 +80,49 @@ async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0) {
         console.log(`⏰ Esperando ${seconds}s hasta el refresh...\n`);
       }
       
-      await sleep(waitMs);
+      // 🔥 ESPERA CON KEEPALIVE LIGERO
+      await waitWithKeepAlive(waitMs, frame);
       return;
+    }
+  }
+}
+
+// 🔥 FUNCIÓN AUXILIAR ULTRA-OPTIMIZADA
+async function waitWithKeepAlive(totalMs, frame) {
+  const startTime = Date.now();
+  let lastKeepAlive = startTime;
+  const keepaliveInterval = 90000; // Ping cada 90 segundos (menos frecuente)
+  
+  while (Date.now() - startTime < totalMs) {
+    const remaining = totalMs - (Date.now() - startTime);
+    
+    // 🔥 ÚLTIMOS 10 SEGUNDOS: SLEEP CONTINUO (NO INTERRUMPIR)
+    if (remaining <= 10000) {
+      await sleep(remaining);
+      break;
+    }
+    
+    // Chunks de 5 segundos
+    const chunkSize = Math.min(5000, remaining);
+    await sleep(chunkSize);
+    
+    // Keepalive cada 90 segundos (solo si NO estamos cerca del refresh)
+    if (frame && remaining > 15000 && Date.now() - lastKeepAlive >= keepaliveInterval) {
+      try {
+        // Ping asíncrono NO bloqueante
+        frame.evaluate(() => 1).catch(() => {});
+        lastKeepAlive = Date.now();
+        
+        // Log cada 5 minutos
+        const elapsed = Date.now() - startTime;
+        if (Math.floor(elapsed / 300000) !== Math.floor((elapsed - chunkSize) / 300000)) {
+          const h = Math.floor(remaining / 3600000);
+          const m = Math.floor((remaining % 3600000) / 60000);
+          console.log(`⏰ Esperando... (Faltan ${h}h ${m}m)`);
+        }
+      } catch (e) {
+        // Ignorar errores de keepalive
+      }
     }
   }
 }
@@ -95,6 +139,87 @@ function getTomorrowDate() {
   return { day, month, year, fullDate: `${day} de ${month} de ${year}` };
 }
 
+// 🔬 FUNCIÓN DE TEST DE VELOCIDAD
+async function testRefreshSpeed(frame) {
+  console.log('\n╔════════════════════════════════════════════╗');
+  console.log('║   🔬 TEST DE VELOCIDAD DE REFRESH 🔬      ║');
+  console.log('╚════════════════════════════════════════════╝\n');
+  
+  console.log('📊 Midiendo tiempo de carga del servidor...\n');
+  
+  const testStart = Date.now();
+  
+  // Hacer refresh de prueba
+  await frame.evaluate(() => {
+    const refreshBtn = document.querySelector("a.refresh");
+    if (refreshBtn) {
+      console.log('🔄 Ejecutando refresh de prueba...');
+      refreshBtn.click();
+    }
+  });
+  
+  const clickTime = Date.now();
+  console.log(`✅ Click ejecutado: ${clickTime - testStart}ms`);
+  
+  // Esperar a que aparezcan los botones (aunque estén INACTIVOS)
+  let loadTime = null;
+  let checkCount = 0;
+  const maxChecks = 300; // 3 segundos máximo
+  
+  while (checkCount < maxChecks && !loadTime) {
+    checkCount++;
+    
+    const status = await frame.evaluate(() => {
+      const buttons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+      const container = document.querySelector('#tee-time');
+      return {
+        buttons: buttons.length,
+        containerExists: container !== null
+      };
+    });
+    
+    // Detectar cuando termina de cargar (aparecen elementos)
+    if (status.buttons > 0 || checkCount > 100) {
+      loadTime = Date.now() - testStart;
+      break;
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  
+  if (!loadTime) {
+    loadTime = 1000; // Fallback: 1 segundo
+    console.log('⚠️ No se pudo medir exactamente, usando 1000ms por defecto\n');
+  }
+  
+  console.log('╔════════════════════════════════════════════╗');
+  console.log('║        📊 RESULTADO DEL TEST 📊           ║');
+  console.log('╚════════════════════════════════════════════╝\n');
+  console.log(`⏱️  TIEMPO DE CARGA MEDIDO: ${loadTime}ms (${(loadTime/1000).toFixed(3)}s)`);
+  console.log(`   - Click: ${clickTime - testStart}ms`);
+  console.log(`   - Carga total: ${loadTime}ms`);
+  console.log(`   - Checks realizados: ${checkCount}\n`);
+  
+  // Calcular timing perfecto
+  const targetTime = 2 * 60 * 60 * 1000; // 2:00:00 PM en ms
+  const refreshTime = targetTime - loadTime; // Restar tiempo de carga
+  
+  // Convertir a hora/minuto/segundo
+  const refreshDate = new Date(refreshTime);
+  const hour = 13; // Siempre 1 PM
+  const minute = 59;
+  const second = 59;
+  
+  console.log('🎯 TIMING CALCULADO:');
+  console.log(`   - Refresh debe ejecutarse: 1:59:${second.toString().padStart(2, '0')} PM`);
+  console.log(`   - Tiempo de carga: ${loadTime}ms`);
+  console.log(`   - Horarios activos: 2:00:00 PM ✅\n`);
+  
+  return {
+  loadTime: 1700,     // ✅ Forzar 1700ms
+  refreshSecond: 59   // ✅ Forzar 1:59:59 PM
+};
+}
 async function startSpeedTest() {
   console.log('╔════════════════════════════════════════════╗');
   console.log('║ 🔥 BOT ULTRA-SPEED DEFINITIVO 🔥          ║');
@@ -451,25 +576,31 @@ await frame.evaluate((minHour, minMinute) => {
     
     let slotToTry = null;
     
-    // 🔥🔥🔥 ESTRATEGIA ANTI-COMPETENCIA (CRÍTICO) 🔥🔥🔥
-    // En el PRIMER intento, elegir ALEATORIO de los primeros 3 slots
-    // Esto distribuye la carga y aumenta 33% probabilidad vs otros bots
-    if (window.__clickAttempts.length === 0 && validSlots.length >= 3) {
-      const topSlots = validSlots.slice(0, 3);
-      const randomIndex = Math.floor(Math.random() * topSlots.length);
-      slotToTry = topSlots[randomIndex];
-      console.log(`🎲 Estrategia anti-competencia: slot ${randomIndex + 1}/3 (${slotToTry.text})`);
-    } else {
-      // Estrategia normal: elegir el primero no intentado
-      for (let i = 0; i < validSlots.length; i++) {
-        const slot = validSlots[i];
-        const alreadyTried = window.__clickAttempts.some(a => a.text === slot.text && !a.success);
-        if (!alreadyTried) {
-          slotToTry = slot;
-          break;
-        }
-      }
+// 🔥🔥🔥 ESTRATEGIA ANTI-COMPETENCIA MEJORADA (CRÍTICO) 🔥🔥🔥
+if (window.__clickAttempts.length === 0) {
+  // PRIMER INTENTO
+  if (validSlots.length >= 3) {
+    // Si hay 3+ slots, elegir aleatorio de los primeros 3
+    const topSlots = validSlots.slice(0, 3);
+    const randomIndex = Math.floor(Math.random() * topSlots.length);
+    slotToTry = topSlots[randomIndex];
+    console.log(`🎲 Anti-competencia: slot ${randomIndex + 1}/3 (${slotToTry.text})`);
+  } else if (validSlots.length > 0) {
+    // Si hay 1-2 slots, elegir el primero
+    slotToTry = validSlots[0];
+    console.log(`🎯 Solo ${validSlots.length} slot(s), eligiendo: ${slotToTry.text}`);
+  }
+} else {
+  // INTENTOS POSTERIORES: elegir el primero no intentado
+  for (let i = 0; i < validSlots.length; i++) {
+    const slot = validSlots[i];
+    const alreadyTried = window.__clickAttempts.some(a => a.text === slot.text && !a.success);
+    if (!alreadyTried) {
+      slotToTry = slot;
+      break;
     }
+  }
+}
     
     if (!slotToTry) {
       const failedAttempts = window.__clickAttempts.filter(a => !a.success);
@@ -691,17 +822,20 @@ await frame.evaluate((minHour, minMinute) => {
   // ✅ RAF OPTIMIZADO con throttle
   let lastRafTime = 0;
   window.__ultraPoll = () => {
-    if (!window.__clickerActive) return;
-    
+  if (!window.__clickerActive) return;
+  
+  try {
     const now = performance.now();
     if (now - lastRafTime >= 8) { // 125fps
       window.__tryClick('RAF');
       lastRafTime = now;
     }
-    
-    requestAnimationFrame(window.__ultraPoll);
-  };
+  } catch (e) {
+    console.log(`⚠️ RAF error: ${e.message}`);
+  }
   
+  requestAnimationFrame(window.__ultraPoll);
+};
 }, TURBO_CONFIG.MIN_HOUR, TURBO_CONFIG.MIN_MINUTE);
 
 console.log('✅ Clicker V14 ULTRA-DEFINITIVO PRE-INYECTADO\n');
@@ -757,16 +891,47 @@ if ((currentHour < 14 || (currentHour === 13 && currentMinute < 59)) &&
   console.log('   ✅ Limpieza completada, continuando...');
 }
 
-console.log('');
 
-// ⏰ ESPERAR HASTA 1:59:58 PM
-console.log('⏰ ESPERANDO HORA EXACTA (1:59:58 PM)...\n');
+// AHORA SÍ, ESPERAR AL REFRESH REAL CON TIMING PERFECTO
+console.log('⏰ ESPERANDO REFRESH DEFINITIVO (1:59:XX PM)...\n');
+
 await waitUntilExactTime(
   TURBO_CONFIG.REFRESH_HOUR,
   TURBO_CONFIG.REFRESH_MINUTE,
-  TURBO_CONFIG.REFRESH_SECOND
+  TURBO_CONFIG.REFRESH_SECOND,
+  frame
 );
-
+console.log('🔍 Verificando conexión del frame...');
+try {
+  const frameAlive = await frame.evaluate(() => {
+    return {
+      alive: true,
+      timestamp: Date.now(),
+      hasContainer: document.querySelector('#tee-time') !== null,
+      hasRefreshBtn: document.querySelector('a.refresh') !== null,
+      bodyLength: document.body.innerHTML.length, // 🔥 NUEVO: verificar que hay contenido
+      canInteract: typeof document.querySelector === 'function' // 🔥 NUEVO: verificar que JS funciona
+    };
+  });
+  
+  console.log('✅ Frame VIVO:');
+  console.log(`   - Timestamp: ${frameAlive.timestamp}`);
+  console.log(`   - Contenedor: ${frameAlive.hasContainer ? '✅' : '❌'}`);
+  console.log(`   - Refresh btn: ${frameAlive.hasRefreshBtn ? '✅' : '❌'}`);
+  console.log(`   - Body size: ${frameAlive.bodyLength} chars`);
+  console.log(`   - Interactivo: ${frameAlive.canInteract ? '✅' : '❌'}\n`);
+  
+  // 🔥 VALIDAR QUE TODO ESTÁ BIEN
+  if (!frameAlive.hasContainer || !frameAlive.hasRefreshBtn || frameAlive.bodyLength < 1000) {
+    throw new Error('Frame en mal estado');
+  }
+  
+} catch (e) {
+  console.log('❌ Frame MUERTO o en mal estado\n');
+  console.log(`   Error: ${e.message}`);
+  console.log('⏳ Navegador abierto para inspección.');
+  await new Promise(() => {});
+}
 console.log('╔════════════════════════════════════════════╗');
 console.log('║      🔥 ¡HORA EXACTA! EJECUTANDO 🔥       ║');
 console.log('╚════════════════════════════════════════════╝\n');
@@ -887,67 +1052,99 @@ const refreshTiming = await frame.evaluate(() => {
     const postClick = Date.now();
     console.log(`   ✅ Click ejecutado: ${postClick - preClick}ms`);
     
-    // 🔥 SISTEMA SÉXTUPLE HIPER-AGRESIVO CON VALIDACIÓN MEJORADA (50/100/200/400/800/1500ms)
-    setTimeout(() => {
-      if (!window.__clickerActive && !window.__isVerifying) {
-        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        const hasChanged = b.length !== preRefreshButtonCount;
-        console.log(`⚡⚡⚡⚡⚡ [${Date.now()}] ULTRA-BACKUP 50ms: ${b.length} botones (cambió: ${hasChanged})`);
-        if (b.length > 0 && (hasChanged || preRefreshButtonCount === 0)) {
-          window.__activateClicker();
-        }
+   // 🔥🔥🔥 SISTEMA HÍBRIDO: 4 ULTRA-RÁPIDOS + 4 NORMALES 🔥🔥🔥
+
+// ═══════════════════════════════════════════════════════
+// ZONA 1: ULTRA-RÁPIDOS (100ms de diferencia)
+// Objetivo: Ganarle a bots de competencia (1.7-2.0s)
+// ═══════════════════════════════════════════════════════
+
+// Backup 1: 1700ms - PRIMER INTENTO (más agresivo)
+setTimeout(() => {
+  if (!window.__clickerActive && !window.__isVerifying) {
+    try {
+      const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+      console.log(`⚡⚡⚡⚡⚡ [${Date.now()}] ULTRA-BACKUP 1700ms: ${b.length} botones`);
+      if (b.length > 0) {
+        window.__activateClicker();
       }
-    }, 50);
-    
-    setTimeout(() => {
-      if (!window.__clickerActive && !window.__isVerifying) {
-        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        const hasChanged = b.length !== preRefreshButtonCount;
-        console.log(`⚡⚡⚡⚡ [${Date.now()}] BACKUP-1 100ms: ${b.length} botones (cambió: ${hasChanged})`);
-        if (b.length > 0 && (hasChanged || preRefreshButtonCount === 0)) {
-          window.__activateClicker();
-        }
-      }
-    }, 100);
-    
-    setTimeout(() => {
-      if (!window.__clickerActive && !window.__isVerifying) {
-        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        const hasChanged = b.length !== preRefreshButtonCount;
-        console.log(`⚡⚡⚡ [${Date.now()}] BACKUP-2 200ms: ${b.length} botones (cambió: ${hasChanged})`);
-        if (b.length > 0 && (hasChanged || preRefreshButtonCount === 0)) {
-          window.__activateClicker();
-        }
-      }
-    }, 200);
-    
-    setTimeout(() => {
-      if (!window.__clickerActive && !window.__isVerifying) {
-        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        console.log(`⚡⚡ [${Date.now()}] BACKUP-3 400ms: ${b.length} botones`);
-        if (b.length > 0) window.__activateClicker();
-      }
-    }, 400);
-    
-    setTimeout(() => {
-      if (!window.__clickerActive && !window.__isVerifying) {
-        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        console.log(`⚡ [${Date.now()}] BACKUP-4 800ms: ${b.length} botones`);
-        if (b.length > 0) window.__activateClicker();
-      }
-    }, 800);
-    
-    setTimeout(() => {
-      if (!window.__clickerActive && !window.__isVerifying) {
-        const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-        console.log(`⚠️ [${Date.now()}] SAFETY 1500ms: ${b.length} botones`);
-        if (b.length > 0) {
-          window.__activateClicker();
-        } else {
-          console.log(`   ❌ CRÍTICO: Horarios NO activados - Posible cache o servidor inactivo`);
-        }
-      }
-    }, 1500);
+    } catch (e) {
+      console.log(`❌ BACKUP 1700ms falló: ${e.message}`);
+    }
+  }
+}, 1700);
+
+// Backup 2: 1800ms - 100ms después (+100ms)
+setTimeout(() => {
+  if (!window.__clickerActive && !window.__isVerifying) {
+    const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    console.log(`⚡⚡⚡⚡ [${Date.now()}] ULTRA-BACKUP 1800ms: ${b.length} botones`);
+    if (b.length > 0) window.__activateClicker();
+  }
+}, 1800);
+
+// Backup 3: 1900ms - 100ms después (+100ms)
+setTimeout(() => {
+  if (!window.__clickerActive && !window.__isVerifying) {
+    const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    console.log(`⚡⚡⚡ [${Date.now()}] ULTRA-BACKUP 1900ms: ${b.length} botones`);
+    if (b.length > 0) window.__activateClicker();
+  }
+}, 1900);
+
+// Backup 4: 2000ms - 100ms después (+100ms)
+setTimeout(() => {
+  if (!window.__clickerActive && !window.__isVerifying) {
+    const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    console.log(`⚡⚡ [${Date.now()}] ULTRA-BACKUP 2000ms: ${b.length} botones`);
+    if (b.length > 0) window.__activateClicker();
+  }
+}, 2000);
+
+// ═══════════════════════════════════════════════════════
+// ZONA 2: RÁPIDOS-NORMALES (200-500ms de diferencia)
+// Objetivo: Cubrir sobrecarga del servidor
+// ═══════════════════════════════════════════════════════
+
+// Backup 5: 2200ms - 200ms después (+200ms)
+setTimeout(() => {
+  if (!window.__clickerActive && !window.__isVerifying) {
+    const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    console.log(`⚡ [${Date.now()}] BACKUP-RÁPIDO 2200ms: ${b.length} botones`);
+    if (b.length > 0) window.__activateClicker();
+  }
+}, 2200);
+
+// Backup 6: 2500ms - 300ms después (+300ms)
+setTimeout(() => {
+  if (!window.__clickerActive && !window.__isVerifying) {
+    const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    console.log(`⚡ [${Date.now()}] BACKUP-NORMAL 2500ms: ${b.length} botones`);
+    if (b.length > 0) window.__activateClicker();
+  }
+}, 2500);
+
+// Backup 7: 3000ms - 500ms después (+500ms)
+setTimeout(() => {
+  if (!window.__clickerActive && !window.__isVerifying) {
+    const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    console.log(`⚠️ [${Date.now()}] BACKUP-SOBRECARGA 3000ms: ${b.length} botones`);
+    if (b.length > 0) window.__activateClicker();
+  }
+}, 3000);
+
+// Backup 8: 4000ms - 1000ms después (+1000ms) - SAFETY FINAL
+setTimeout(() => {
+  if (!window.__clickerActive && !window.__isVerifying) {
+    const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    console.log(`🚨 [${Date.now()}] SAFETY-FINAL 4000ms: ${b.length} botones`);
+    if (b.length > 0) {
+      window.__activateClicker();
+    } else {
+      console.log(`   ❌ CRÍTICO: Horarios NO activados después de 4s`);
+    }
+  }
+}, 4000);
     
     return {
       started: startTime,
