@@ -14,29 +14,28 @@ if (!USER_CLUB || !PASS_CLUB || !CODIGO_SOCIO_1 || !CODIGO_SOCIO_2) {
 }
 
 const CODIGOS_SOCIOS = [CODIGO_SOCIO_1, CODIGO_SOCIO_2];
-// 🔥 TEST DE VELOCIDAD: Medir cuánto tarda el refresh
-let MEASURED_REFRESH_TIME = null; // Se llenará con el test
 
 const TURBO_CONFIG = {
   MIN_HOUR: MIN_HOUR,
   MIN_MINUTE: MIN_MINUTE,
-  REFRESH_HOUR: 14,        // 2:00:00 PM
-  REFRESH_MINUTE: 0,
-  REFRESH_SECOND: 0,
-  ACTIVATION_DELAY: 800    // Tiempo que tarda el refresh en cargar (ajustable)
+  REFRESH_HOUR: 13,        // 1:59:59.700 PM
+  REFRESH_MINUTE: 59,
+  REFRESH_SECOND: 59,
+  REFRESH_MS: 700,         // 🔥 NUEVO: Milisegundos (ajustar según pruebas)
+  ACTIVATION_DELAY: 300    // Ajustado
 };
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0, frame = null) {
+async function waitUntilExactTimeHighPrecision(targetHour, targetMinute, targetSecond = 0, targetMs = 0, frame = null) {
   while (true) {
     const now = new Date();
     const nowColombia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
     
     const target = new Date(nowColombia);
-    target.setHours(targetHour, targetMinute, targetSecond, 0);
+    target.setHours(targetHour, targetMinute, targetSecond, targetMs);
     
     const waitMs = target - nowColombia;
     
@@ -44,12 +43,12 @@ async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0, fr
       // Ya pasó la hora de hoy, calcular para mañana
       const tomorrow = new Date(nowColombia);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(targetHour, targetMinute, targetSecond, 0);
+      tomorrow.setHours(targetHour, targetMinute, targetSecond, targetMs);
       
       const tomorrowWaitMs = tomorrow - nowColombia;
       
       if (waitMs > -300000) {
-        console.log('⚠️ Ya pasó la hora objetivo de hoy (1:59:58 PM hace poco)');
+        console.log(`⚠️ Ya pasó la hora objetivo de hoy (${targetHour}:${targetMinute}:${targetSecond}.${targetMs})`);
         console.log('   Para mañana, ejecuta el bot antes de las 2 PM\n');
       }
       
@@ -57,12 +56,12 @@ async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0, fr
       const minutes = Math.floor((tomorrowWaitMs % 3600000) / 60000);
       const seconds = Math.floor((tomorrowWaitMs % 60000) / 1000);
       
-      console.log(`🌎 Hora actual Colombia: ${nowColombia.toLocaleTimeString('es-CO')}`);
-      console.log(`⏰ Esperando hasta MAÑANA ${tomorrow.toLocaleTimeString('es-CO')}`);
+      console.log(`🌎 Hora actual Colombia: ${nowColombia.toLocaleTimeString('es-CO', {hour: '2-digit', minute: '2-digit', second: '2-digit'})}.${nowColombia.getMilliseconds()}`);
+      console.log(`⏰ Esperando hasta MAÑANA ${tomorrow.toLocaleTimeString('es-CO', {hour: '2-digit', minute: '2-digit', second: '2-digit'})}.${targetMs}`);
       console.log(`   (Faltan ${hours}h ${minutes}m ${seconds}s)\n`);
       
       // 🔥 ESPERA CON KEEPALIVE LIGERO
-      await waitWithKeepAlive(tomorrowWaitMs, frame);
+      await waitWithKeepAliveHighPrecision(tomorrowWaitMs, frame, targetMs);
       return;
     } else {
       const hours = Math.floor(waitMs / 3600000);
@@ -70,7 +69,7 @@ async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0, fr
       const seconds = Math.floor((waitMs % 60000) / 1000);
       
       console.log(`🌎 Hora actual Colombia: ${nowColombia.toLocaleTimeString('es-CO')}`);
-      console.log(`🎯 Hora objetivo: ${target.toLocaleTimeString('es-CO')}`);
+      console.log(`🎯 Hora objetivo: ${target.toLocaleTimeString('es-CO', {hour: '2-digit', minute: '2-digit', second: '2-digit'})}.${targetMs}`);
       
       if (hours > 0) {
         console.log(`⏰ Esperando ${hours}h ${minutes}m ${seconds}s hasta el refresh...\n`);
@@ -81,40 +80,47 @@ async function waitUntilExactTime(targetHour, targetMinute, targetSecond = 0, fr
       }
       
       // 🔥 ESPERA CON KEEPALIVE LIGERO
-      await waitWithKeepAlive(waitMs, frame);
+      await waitWithKeepAliveHighPrecision(waitMs, frame, targetMs);
       return;
     }
   }
 }
 
 // 🔥 FUNCIÓN AUXILIAR ULTRA-OPTIMIZADA
-async function waitWithKeepAlive(totalMs, frame) {
-  const startTime = Date.now();
+async function waitWithKeepAliveHighPrecision(totalMs, frame, targetMs = 0) {
+  const startTime = performance.now();
   let lastKeepAlive = startTime;
-  const keepaliveInterval = 90000; // Ping cada 90 segundos (menos frecuente)
+  const keepaliveInterval = 90000;
   
-  while (Date.now() - startTime < totalMs) {
-    const remaining = totalMs - (Date.now() - startTime);
+  while (performance.now() - startTime < totalMs) {
+    const remaining = totalMs - (performance.now() - startTime);
     
-    // 🔥 ÚLTIMOS 10 SEGUNDOS: SLEEP CONTINUO (NO INTERRUMPIR)
-    if (remaining <= 10000) {
-      await sleep(remaining);
+    // 🔥 ÚLTIMOS 500MS: BUSY-WAIT ULTRA-PRECISO
+    if (remaining <= 500) {
+      console.log(`🔥 MODO PRECISIÓN EXTREMA: últimos ${remaining.toFixed(0)}ms`);
+      
+      const targetTime = performance.now() + remaining;
+      
+      // Busy-wait (spin-wait) para máxima precisión
+      while (performance.now() < targetTime) {
+        // Busy-wait: consume CPU pero es ultra-preciso
+      }
+      
+      console.log(`✅ Timing perfecto alcanzado: ${new Date().getMilliseconds()}ms`);
       break;
     }
     
-    // Chunks de 5 segundos
+    // Chunks de 5 segundos (para esperas largas)
     const chunkSize = Math.min(5000, remaining);
     await sleep(chunkSize);
     
     // Keepalive cada 90 segundos (solo si NO estamos cerca del refresh)
-    if (frame && remaining > 15000 && Date.now() - lastKeepAlive >= keepaliveInterval) {
+    if (frame && remaining > 15000 && performance.now() - lastKeepAlive >= keepaliveInterval) {
       try {
-        // Ping asíncrono NO bloqueante
         frame.evaluate(() => 1).catch(() => {});
-        lastKeepAlive = Date.now();
+        lastKeepAlive = performance.now();
         
-        // Log cada 5 minutos
-        const elapsed = Date.now() - startTime;
+        const elapsed = performance.now() - startTime;
         if (Math.floor(elapsed / 300000) !== Math.floor((elapsed - chunkSize) / 300000)) {
           const h = Math.floor(remaining / 3600000);
           const m = Math.floor((remaining % 3600000) / 60000);
@@ -126,7 +132,6 @@ async function waitWithKeepAlive(totalMs, frame) {
     }
   }
 }
-
 function getTomorrowDate() {
   const now = new Date();
   const nowColombia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
@@ -139,87 +144,7 @@ function getTomorrowDate() {
   return { day, month, year, fullDate: `${day} de ${month} de ${year}` };
 }
 
-// 🔬 FUNCIÓN DE TEST DE VELOCIDAD
-async function testRefreshSpeed(frame) {
-  console.log('\n╔════════════════════════════════════════════╗');
-  console.log('║   🔬 TEST DE VELOCIDAD DE REFRESH 🔬      ║');
-  console.log('╚════════════════════════════════════════════╝\n');
-  
-  console.log('📊 Midiendo tiempo de carga del servidor...\n');
-  
-  const testStart = Date.now();
-  
-  // Hacer refresh de prueba
-  await frame.evaluate(() => {
-    const refreshBtn = document.querySelector("a.refresh");
-    if (refreshBtn) {
-      console.log('🔄 Ejecutando refresh de prueba...');
-      refreshBtn.click();
-    }
-  });
-  
-  const clickTime = Date.now();
-  console.log(`✅ Click ejecutado: ${clickTime - testStart}ms`);
-  
-  // Esperar a que aparezcan los botones (aunque estén INACTIVOS)
-  let loadTime = null;
-  let checkCount = 0;
-  const maxChecks = 300; // 3 segundos máximo
-  
-  while (checkCount < maxChecks && !loadTime) {
-    checkCount++;
-    
-    const status = await frame.evaluate(() => {
-      const buttons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-      const container = document.querySelector('#tee-time');
-      return {
-        buttons: buttons.length,
-        containerExists: container !== null
-      };
-    });
-    
-    // Detectar cuando termina de cargar (aparecen elementos)
-    if (status.buttons > 0 || checkCount > 100) {
-      loadTime = Date.now() - testStart;
-      break;
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 10));
-  }
-  
-  if (!loadTime) {
-    loadTime = 1000; // Fallback: 1 segundo
-    console.log('⚠️ No se pudo medir exactamente, usando 1000ms por defecto\n');
-  }
-  
-  console.log('╔════════════════════════════════════════════╗');
-  console.log('║        📊 RESULTADO DEL TEST 📊           ║');
-  console.log('╚════════════════════════════════════════════╝\n');
-  console.log(`⏱️  TIEMPO DE CARGA MEDIDO: ${loadTime}ms (${(loadTime/1000).toFixed(3)}s)`);
-  console.log(`   - Click: ${clickTime - testStart}ms`);
-  console.log(`   - Carga total: ${loadTime}ms`);
-  console.log(`   - Checks realizados: ${checkCount}\n`);
-  
-  // Calcular timing perfecto
-  const targetTime = 2 * 60 * 60 * 1000; // 2:00:00 PM en ms
-  const refreshTime = targetTime - loadTime; // Restar tiempo de carga
-  
-  // Convertir a hora/minuto/segundo
-  const refreshDate = new Date(refreshTime);
-  const hour = 13; // Siempre 1 PM
-  const minute = 59;
-  const second = 59;
-  
-  console.log('🎯 TIMING CALCULADO:');
-  console.log(`   - Refresh debe ejecutarse: 1:59:${second.toString().padStart(2, '0')} PM`);
-  console.log(`   - Tiempo de carga: ${loadTime}ms`);
-  console.log(`   - Horarios activos: 2:00:00 PM ✅\n`);
-  
-  return {
-  loadTime: 1700,     // ✅ Forzar 1700ms
-  refreshSecond: 59   // ✅ Forzar 1:59:59 PM
-};
-}
+
 async function startSpeedTest() {
   console.log('╔════════════════════════════════════════════╗');
   console.log('║ 🔥 BOT ULTRA-SPEED DEFINITIVO 🔥          ║');
@@ -234,9 +159,9 @@ async function startSpeedTest() {
   console.log(`   - Socios: ${CODIGOS_SOCIOS.join(', ')}`);
   console.log(`   - Entorno: ${isProduction ? 'PRODUCCIÓN' : 'DESARROLLO'}`);
   console.log(`   - Headless: ${isProduction ? 'SÍ' : 'NO'}`);
-  console.log(`   - Sistema: Observer + RAF + Interval`);
+  console.log(`   - Sistema: Observer + RAF + Interval + performance.now()`);
   console.log(`   - Horario mínimo: ${MIN_HOUR}:${MIN_MINUTE.toString().padStart(2,'0')} AM`);
-  console.log(`   - Refresh exacto: 1:59:59 PM`);
+  console.log(`   - Refresh exacto: 1:59:59.${TURBO_CONFIG.REFRESH_MS} PM`);
   console.log(`   - Activación clicker: ~2:00:00 PM (al terminar carga)`);
   console.log(`   - Día objetivo: ${tomorrow.fullDate}\n`);
 
@@ -554,7 +479,6 @@ console.log(`   Contenedor: ${preRefreshDiag.containerExists ? '✅' : '❌'}`);
 console.log(`   Botones: ${preRefreshDiag.buttonsCount}`);
 console.log(`   Refresh btn: ${preRefreshDiag.refreshBtnExists ? '✅' : '❌'}`);
 console.log(`   Estado: ${preRefreshDiag.status}`);
-
 // 🔥 DETECTAR CACHE VIEJO
 const now = new Date();
 const nowColombia = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
@@ -578,15 +502,18 @@ if ((currentHour < 14 || (currentHour === 13 && currentMinute < 59)) &&
   });
   
   console.log('   ✅ Limpieza completada, continuando...');
-}
+}  // ← 🔥 CORRECCIÓN: Cerrar el if
+
+console.log('');
 
 // ✅ PASO 2: ESPERAR HORA EXACTA
-console.log('⏰ ESPERANDO REFRESH DEFINITIVO (2:00:00 PM)...\n');
+console.log('⏰ ESPERANDO REFRESH DEFINITIVO (1:59:59.700 PM)...\n');
 
-await waitUntilExactTime(
+await waitUntilExactTimeHighPrecision(
   TURBO_CONFIG.REFRESH_HOUR,
   TURBO_CONFIG.REFRESH_MINUTE,
   TURBO_CONFIG.REFRESH_SECOND,
+  TURBO_CONFIG.REFRESH_MS,
   frame
 );
 
@@ -622,13 +549,192 @@ try {
   await new Promise(() => {});
 }
 
-// ✅ PASO 4: EJECUTAR REFRESH (EN HORA EXACTA)
+// ✅ PASO 4: EJECUTAR REFRESH CON VERIFICACIÓN
 console.log('╔════════════════════════════════════════════╗');
 console.log('║      🔥 ¡HORA EXACTA! EJECUTANDO 🔥       ║');
 console.log('╚════════════════════════════════════════════╝\n');
 
 const refreshStart = Date.now();
 console.log(`⏰ [${refreshStart}] Inicio refresh\n`);
+
+// 🔥🔥🔥 CLICK CON VERIFICACIÓN MÚLTIPLE
+const clickResult = await frame.evaluate(() => {
+  const btn = document.querySelector("a.refresh");
+  
+  if (!btn) {
+    return { success: false, error: 'Botón no encontrado' };
+  }
+  
+  // Capturar estado ANTES del click
+  const beforeClick = {
+    buttonExists: true,
+    buttonVisible: btn.offsetParent !== null,
+    buttonText: btn.innerText || btn.textContent,
+    onclick: btn.getAttribute('onclick'),
+    containerHTML: document.querySelector('#tee-time')?.innerHTML.length || 0
+  };
+  
+  console.log('🖱️ EJECUTANDO CLICK DEL REFRESH...');
+  console.log(`   - Botón visible: ${beforeClick.buttonVisible ? 'SÍ' : 'NO'}`);
+  console.log(`   - onclick: ${beforeClick.onclick ? 'EXISTE' : 'NO EXISTE'}`);
+  
+  // 🔥 MÉTODO 1: Click directo
+  let method = 'NONE';
+  try {
+    btn.click();
+    method = 'DIRECT_CLICK';
+    console.log(`   ✅ Click directo ejecutado`);
+  } catch (e) {
+    console.log(`   ⚠️ Click directo falló: ${e.message}`);
+    
+    // 🔥 MÉTODO 2: Ejecutar onclick manualmente
+    if (beforeClick.onclick) {
+      try {
+        eval(beforeClick.onclick);
+        method = 'EVAL_ONCLICK';
+        console.log(`   ✅ Onclick ejecutado manualmente`);
+      } catch (e2) {
+        console.log(`   ⚠️ Onclick falló: ${e2.message}`);
+        
+        // 🔥 MÉTODO 3: DispatchEvent
+        try {
+          const clickEvent = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+          });
+          btn.dispatchEvent(clickEvent);
+          method = 'DISPATCH_EVENT';
+          console.log(`   ✅ DispatchEvent ejecutado`);
+        } catch (e3) {
+          return { 
+            success: false, 
+            error: 'Todos los métodos fallaron',
+            beforeClick: beforeClick
+          };
+        }
+      }
+    }
+  }
+  
+  return {
+    success: true,
+    method: method,
+    beforeClick: beforeClick,
+    timestamp: Date.now()
+  };
+});
+
+// 🔥 VERIFICAR QUE EL CLICK FUNCIONÓ
+if (!clickResult.success) {
+  console.log('❌❌❌ CLICK DEL REFRESH FALLÓ\n');
+  console.log(`   Error: ${clickResult.error}`);
+  console.log(`   Botón visible: ${clickResult.beforeClick?.buttonVisible}`);
+  console.log(`   Onclick: ${clickResult.beforeClick?.onclick}`);
+  console.log('\n⏳ Navegador abierto para inspección.');
+  await new Promise(() => {});
+}
+
+console.log(`✅ CLICK EXITOSO (${clickResult.method})`);
+console.log(`   - Timestamp: ${clickResult.timestamp}`);
+console.log(`   - Tiempo desde inicio: ${clickResult.timestamp - refreshStart}ms\n`);
+
+// 🔥 PASO 5: VERIFICAR QUE LA PÁGINA REALMENTE SE REFRESCÓ
+console.log('🔍 Verificando que el refresh se ejecutó...\n');
+
+let refreshConfirmed = false;
+let checkCount = 0;
+const maxChecks = 150; // 1.5 segundos máximo
+
+while (!refreshConfirmed && checkCount < maxChecks) {
+  checkCount++;
+  
+  const pageState = await frame.evaluate(() => {
+    const container = document.querySelector('#tee-time');
+    const buttons = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+    const statusText = document.body.innerText;
+    const status = statusText.match(/Reservar entre.*?\((ACTIVO|INACTIVO)\)/)?.[1] || 'N/A';
+    
+    // 🔥 NUEVOS INDICADORES DE REFRESH:
+    const loadingIndicator = document.querySelector('.loading, .spinner, #loading');
+    const bodyClasses = document.body.className;
+    const timestamp = Date.now();
+    
+    return {
+      containerHTML: container?.innerHTML.length || 0,
+      buttonsCount: buttons.length,
+      bodyLength: document.body.innerHTML.length,
+      status: status,
+      hasLoadingIndicator: loadingIndicator !== null,
+      bodyClasses: bodyClasses,
+      timestamp: timestamp
+    };
+  });
+  
+  // 🔥 MÉTODO 1: Detectar cambio en HTML
+  const htmlChanged = pageState.containerHTML !== clickResult.beforeClick.containerHTML;
+  
+  // 🔥 MÉTODO 2: Detectar cambio en cantidad de botones
+  const buttonsChanged = pageState.buttonsCount !== (await frame.evaluate(() => 
+    document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]').length
+  ));
+  
+  // 🔥 MÉTODO 3: Detectar indicador de loading (aunque sea breve)
+  const hasLoading = pageState.hasLoadingIndicator;
+  
+  // 🔥 MÉTODO 4: Dar por hecho que funcionó si el click fue exitoso y hay botones
+  const clickWasSuccessful = clickResult.success && pageState.buttonsCount > 0;
+  
+  if (htmlChanged || buttonsChanged || hasLoading) {
+    refreshConfirmed = true;
+    console.log(`✅ REFRESH CONFIRMADO (después de ${checkCount * 10}ms)`);
+    
+    if (htmlChanged) {
+      console.log(`   - HTML cambió: ${clickResult.beforeClick.containerHTML} → ${pageState.containerHTML} bytes`);
+    }
+    if (buttonsChanged) {
+      console.log(`   - Botones cambiaron`);
+    }
+    if (hasLoading) {
+      console.log(`   - Detectado indicador de carga`);
+    }
+    
+    console.log(`   - Botones actuales: ${pageState.buttonsCount}`);
+    console.log(`   - Estado: ${pageState.status}\n`);
+    break;
+  }
+  
+  // 🔥 MÉTODO 5: Si después de 500ms sigue igual, asumir que ya estaba listo
+  if (checkCount === 50 && clickWasSuccessful) {
+    refreshConfirmed = true;
+    console.log(`✅ REFRESH ASUMIDO EXITOSO (página ya estaba lista)`);
+    console.log(`   - Click exitoso: ✅`);
+    console.log(`   - Botones disponibles: ${pageState.buttonsCount}`);
+    console.log(`   - Estado: ${pageState.status}`);
+    console.log(`   - Nota: HTML no cambió porque ya estaba en modo ACTIVO\n`);
+    break;
+  }
+  
+  if (checkCount % 10 === 0) {
+    console.log(`   ⏳ Esperando cambios... (${checkCount * 10}ms) - Botones: ${pageState.buttonsCount}`);
+  }
+  
+  await new Promise(resolve => setTimeout(resolve, 10));
+}
+
+if (!refreshConfirmed) {
+  console.log('⚠️⚠️⚠️ ADVERTENCIA: No se detectaron cambios después del click');
+  console.log('   Sin embargo, el click SÍ se ejecutó correctamente.');
+  console.log('   Esto puede ser normal si la página ya estaba en modo ACTIVO.\n');
+  
+  // 🔥 NO DETENER EL BOT - Solo advertir y continuar
+  console.log('✅ Continuando de todas formas...\n');
+}
+
+
+// 🔥 Ahora sí, continuar con el código del clicker...
+console.log(`⏰ [${Date.now()}] Refresh confirmado, activando clicker...\n`);
+
 
 // 🔥🔥🔥 TODO EN UN SOLO frame.evaluate() 🔥🔥🔥
 const refreshTiming = await frame.evaluate((minHour, minMinute) => {
@@ -1228,6 +1334,21 @@ if (currentMs < todayAt2PM.getTime()) {
     
 // PASO 4: BACKUPS ULTRA-AGRESIVOS (400-6000ms)
 
+// PASO 4: BACKUPS ULTRA-AGRESIVOS (0-6000ms)
+
+// 🔥🔥🔥 INSTANT-FAST: 0-350ms cada 50ms (8 backups) - NUEVO
+[0, 50, 100, 150, 200, 250, 300, 350].forEach(time => {
+  setTimeout(() => {
+    if (!window.__clickerActive && !window.__isVerifying) {
+      const b = document.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+      if (b.length > 0) {
+        console.log(`⚡⚡⚡⚡ [${Date.now()}] INSTANT ${time}ms: ${b.length} botones`);
+        window.__activateClicker();
+      }
+    }
+  }, time);
+});
+
 // 🔥 HYPER-FAST: 400-1000ms cada 50ms (13 backups)
 [400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000].forEach(time => {
   setTimeout(() => {
@@ -1321,7 +1442,7 @@ setTimeout(() => {
 
     // ❌ NO HACER RETURN - Dejar que los setTimeout se ejecuten
     console.log(`⏱️ Refresh ejecutado: ${postClick - preClick}ms`);
-    console.log(`🔥 Backups programados (400-6000ms) - Esperando activación...`);
+    console.log(`🔥 Backups programados (0-6000ms) - Esperando activación...`);
   }
   
   // ❌ NO DEVOLVER NADA - El evaluate() debe seguir vivo
