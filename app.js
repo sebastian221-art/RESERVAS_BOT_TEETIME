@@ -7,7 +7,7 @@ const PASS_CLUB = process.argv[3] || process.env.PASS_CLUB;
 const CODIGO_SOCIO_1 = process.argv[4] || process.env.CODIGO_SOCIO_1;
 const CODIGO_SOCIO_2 = process.argv[5] || process.env.CODIGO_SOCIO_2;
 const MIN_HOUR = parseInt(process.argv[6]) || 6;
-const MIN_MINUTE = parseInt(process.argv[7]) || 10;
+const MIN_MINUTE = parseInt(process.argv[7]) || 0;
 
 if (!USER_CLUB || !PASS_CLUB || !CODIGO_SOCIO_1 || !CODIGO_SOCIO_2) {
   throw new Error('❌ Faltan credenciales');
@@ -644,7 +644,7 @@ console.log('🔍 Verificando que el refresh se ejecutó...\n');
 
 let refreshConfirmed = false;
 let checkCount = 0;
-const maxChecks = 30; // 1.5 segundos máximo
+const maxChecks = 5; // 1.5 segundos máximo
 
 while (!refreshConfirmed && checkCount < maxChecks) {
   checkCount++;
