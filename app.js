@@ -644,7 +644,7 @@ console.log('🔍 Verificando que el refresh se ejecutó...\n');
 
 let refreshConfirmed = false;
 let checkCount = 0;
-const maxChecks = 150; // 1.5 segundos máximo
+const maxChecks = 30; // 1.5 segundos máximo
 
 while (!refreshConfirmed && checkCount < maxChecks) {
   checkCount++;
@@ -682,27 +682,15 @@ while (!refreshConfirmed && checkCount < maxChecks) {
   // 🔥 MÉTODO 3: Detectar indicador de loading (aunque sea breve)
   const hasLoading = pageState.hasLoadingIndicator;
   
-  // 🔥 MÉTODO 4: Dar por hecho que funcionó si el click fue exitoso y hay botones
-  const clickWasSuccessful = clickResult.success && pageState.buttonsCount > 0;
-  
-  if (htmlChanged || buttonsChanged || hasLoading) {
-    refreshConfirmed = true;
-    console.log(`✅ REFRESH CONFIRMADO (después de ${checkCount * 10}ms)`);
-    
-    if (htmlChanged) {
-      console.log(`   - HTML cambió: ${clickResult.beforeClick.containerHTML} → ${pageState.containerHTML} bytes`);
-    }
-    if (buttonsChanged) {
-      console.log(`   - Botones cambiaron`);
-    }
-    if (hasLoading) {
-      console.log(`   - Detectado indicador de carga`);
-    }
-    
-    console.log(`   - Botones actuales: ${pageState.buttonsCount}`);
-    console.log(`   - Estado: ${pageState.status}\n`);
-    break;
-  }
+// 🔥 MÉTODO 4: Si hay botones, SALTAR verificación inmediatamente
+if (clickResult.success && pageState.buttonsCount > 0) {
+  refreshConfirmed = true;
+  console.log(`✅ REFRESH CONFIRMADO INMEDIATO (${checkCount * 10}ms)`);
+  console.log(`   - Botones detectados: ${pageState.buttonsCount}`);
+  console.log(`   - Estado: ${pageState.status}`);
+  console.log(`   - Saltando verificación para máxima velocidad\n`);
+  break;
+}
   
   // 🔥 MÉTODO 5: Si después de 500ms sigue igual, asumir que ya estaba listo
   if (checkCount === 50 && clickWasSuccessful) {
@@ -759,40 +747,43 @@ const refreshTiming = await frame.evaluate((minHour, minMinute) => {
 window.__tryClick = (caller = 'unknown') => {
   if (!window.__clickerActive || window.__isVerifying) return false;
   
-  // ✅ SETEAR INMEDIATAMENTE (primera línea después del if)
   window.__isVerifying = true;
-  
-  // Ahora sí, el resto del código
   window.__rafCallCount++;
     
-    const freshContainer = document.querySelector('#tee-time');
-    if (!freshContainer) {
-      console.log(`⚠️ [${Date.now()}] Contenedor desaparecido`);
-      return false;
-    }
+  const freshContainer = document.querySelector('#tee-time');
+  if (!freshContainer) {
+    console.log(`⚠️ [${Date.now()}] Contenedor desaparecido`);
+    window.__isVerifying = false;  // ← 🔥 AGREGAR ESTA LÍNEA
+    return false;
+  }
+  
+  const buttons = freshContainer.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
+  
+  if (window.__rafCallCount % 50 === 0) {
+    console.log(`🔍 [${Date.now()}] RAF #${window.__rafCallCount} | Botones: ${buttons.length}`);
+  }
+  
+  if (buttons.length > 0 && !window.__firstDetectionLogged) {
+    console.log(`🎯 [${Date.now()}] ¡HORARIOS ACTIVADOS! ${buttons.length} botones`);
+    console.log(`   - Detectado por: ${caller}`);
+    console.log(`   - Tiempo: ${Date.now() - window.__rafStartTime}ms`);
+    window.__firstDetectionLogged = true;
+    window.__detectionMethod = caller;
+    window.__activationDetected = true;
     
-    const buttons = freshContainer.querySelectorAll('a[onclick*="xajax_teeTimeDetalle"]');
-    
-    if (window.__rafCallCount % 50 === 0) {
-      console.log(`🔍 [${Date.now()}] RAF #${window.__rafCallCount} | Botones: ${buttons.length}`);
-    }
-    
-    if (buttons.length > 0 && !window.__firstDetectionLogged) {
-      console.log(`🎯 [${Date.now()}] ¡HORARIOS ACTIVADOS! ${buttons.length} botones`);
-      console.log(`   - Detectado por: ${caller}`);
-      console.log(`   - Tiempo: ${Date.now() - window.__rafStartTime}ms`);
-      window.__firstDetectionLogged = true;
-      window.__detectionMethod = caller;
-      window.__activationDetected = true;
-      
-      window.__buttonHistory = Array.from(buttons).map(btn => {
-        const div = btn.querySelector('div');
-        return div ? div.innerText.trim() : 'N/A';
-      });
-      console.log(`   - Horarios:`, window.__buttonHistory);
-    }
-    
-    if (buttons.length === 0) return false;
+    window.__buttonHistory = Array.from(buttons).map(btn => {
+      const div = btn.querySelector('div');
+      return div ? div.innerText.trim() : 'N/A';
+    });
+    console.log(`   - Horarios:`, window.__buttonHistory);
+  }
+  
+  if (buttons.length === 0) {
+    window.__isVerifying = false;  // ← 🔥 AGREGAR ESTA LÍNEA
+    return false;
+  }
+  
+  // ... resto del código ...
 
     const validSlots = [];
     const buttonsArray = Array.from(buttons);
@@ -832,7 +823,57 @@ for (let i = 0; i < buttonsArray.length; i++) {
   }
 }
     
-    if (validSlots.length === 0) return false;
+    // 🔥🔥🔥 CORRECCIÓN: Si no hay slots >= MIN_TIME, tomar el primer disponible
+if (validSlots.length === 0) {
+  console.log(`⚠️ [${Date.now()}] No hay horarios >= ${minHour}:${minMinute.toString().padStart(2,'0')} AM`);
+  
+  // Crear lista de TODOS los horarios disponibles (sin filtro de MIN_TIME)
+  const allAvailableSlots = [];
+  
+  for (let i = 0; i < buttonsArray.length; i++) {
+    const btn = buttonsArray[i];
+    const div = btn.querySelector('div');
+    const text = div ? div.innerText : btn.innerText.trim();
+    if (!text) continue;
+    
+    const onclick = btn.getAttribute('onclick');
+    if (!onclick || !onclick.includes('xajax_teeTimeDetalle')) continue;
+    
+    const match = text.match(timeRegex);
+    if (!match) continue;
+    
+    let h = parseInt(match[1]);
+    const m = parseInt(match[2]);
+    const p = match[3].toLowerCase();
+    
+    if (p === 'pm' && h !== 12) h += 12;
+    else if (p === 'am' && h === 12) h = 0;
+    
+    const totalMinutes = h * 60 + m;
+    
+    allAvailableSlots.push({
+      index: i,
+      button: btn,
+      text: text.trim(),
+      totalMinutes: totalMinutes,
+      onclick: onclick
+    });
+  }
+  
+  if (allAvailableSlots.length > 0) {
+    // Ordenar por hora (más temprano primero)
+    allAvailableSlots.sort((a, b) => a.totalMinutes - b.totalMinutes);
+    
+    // Tomar el más cercano a MIN_TIME
+    console.log(`🎯 Tomando horario más cercano disponible: ${allAvailableSlots[0].text}`);
+    validSlots.push(allAvailableSlots[0]);
+  } else {
+    // No hay NINGÚN botón disponible
+    console.log(`❌ [${Date.now()}] Sin botones disponibles`);
+    window.__isVerifying = false;  // ← 🔥 CRÍTICO: Resetear flag
+    return false;
+  }
+}
     
     let slotToTry = null;
     
@@ -1124,7 +1165,7 @@ const maxChecks = 100;  // ← Duplicar checks
       }
     };
     
-    setTimeout(rapidCheck, 50);
+    setTimeout(rapidCheck, 10);
     return true;
   };
 
