@@ -644,7 +644,7 @@ console.log('🔍 Verificando que el refresh se ejecutó...\n');
 
 let refreshConfirmed = false;
 let checkCount = 0;
-const maxChecks = 5; // 1.5 segundos máximo
+const maxChecks = 5; 
 
 while (!refreshConfirmed && checkCount < maxChecks) {
   checkCount++;
